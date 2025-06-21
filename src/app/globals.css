@@ -1,7 +1,13 @@
 @import "tailwindcss";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+/* Custom color variables */
+:root {
+  --rice-gold: #D4AF37;
+  --ricecream: #F5F5DC;
+  --ghana-red: #CE1126;
+  --ghana-gold: #FCD116;
+  --ghana-green: #006B3F;
+}
 
 @layer base {
   body {
@@ -29,7 +35,42 @@
   .hover-lift:hover {
     transform: translateY(-5px);
   }
+
+  /* Custom color utilities */
+  .bg-rice-gold { background-color: var(--rice-gold); }
+  .bg-ricecream { background-color: var(--ricecream); }
+  .bg-ghana-red { background-color: var(--ghana-red); }
+  .bg-ghana-gold { background-color: var(--ghana-gold); }
+  .bg-ghana-green { background-color: var(--ghana-green); }
+
+  .text-rice-gold { color: var(--rice-gold); }
+  .text-ricecream { color: var(--ricecream); }
+  .text-ghana-red { color: var(--ghana-red); }
+  .text-ghana-gold { color: var(--ghana-gold); }
+  .text-ghana-green { color: var(--ghana-green); }
+
+  /* Custom animation utilities */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+  }
+  .animate-bounce {
+    animation: bounce 1s infinite;
+  }
 }
+
+/* Custom keyframes */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* You can add bounce keyframes if needed, or rely on Tailwind's default if available */
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
@@ -41,7 +82,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D4AF37;
+  background: var(--rice-gold);
   border-radius: 4px;
 }
 
@@ -54,9 +95,6 @@ button:focus,
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid #D4AF37;
+  outline: 2px solid var(--rice-gold);
   outline-offset: 2px;
 }
-
-
-
