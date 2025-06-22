@@ -2,10 +2,23 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin'
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
+    
+    // Check authentication and admin privileges
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    try {
+      requireAdmin(user.email)
+    } catch (error) {
+      return NextResponse.json({ error: 'Access denied: Admin privileges required' }, { status: 403 })
+    }
     
     // Get all orders with order items
     const { data: orders, error } = await supabase
@@ -50,6 +63,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = await createClient()
+    
+    // Check authentication and admin privileges
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    try {
+      requireAdmin(user.email)
+    } catch (error) {
+      return NextResponse.json({ error: 'Access denied: Admin privileges required' }, { status: 403 })
+    }
     
     const updateData: any = { 
       status,

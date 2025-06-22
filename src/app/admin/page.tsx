@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import { isAdminUser } from '@/lib/admin'
+import OrderDetailModal from '@/components/OrderDetailModal'
 
 interface Order {
   id: string
@@ -23,14 +27,24 @@ interface Order {
 }
 
 export default function AdminPage() {
+  const { user, loading: authLoading, signOut } = useAuth()
+  const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [updateLoading, setUpdateLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    if (!authLoading && (!user || !isAdminUser(user.email))) {
+      router.push('/admin/login')
+      return
+    }
+    if (user && isAdminUser(user.email)) {
+      fetchOrders()
+    }
+  }, [user, authLoading, router])
 
   const fetchOrders = async () => {
     try {
@@ -127,7 +141,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rice-gold mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading orders...</p>
         </div>
       </div>
@@ -136,6 +150,42 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Admin Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-600 rounded-full p-2">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Admin Portal</h1>
+                <p className="text-sm text-gray-500">Welcome back, {user?.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push('/')}
+                className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+              >
+                View Store
+              </button>
+              <button
+                onClick={() => signOut()}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
@@ -187,7 +237,7 @@ export default function AdminPage() {
                   onClick={() => setFilter(tab.key)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${
                     filter === tab.key
-                      ? 'border-rice-gold text-rice-gold'
+                      ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -289,6 +339,15 @@ export default function AdminPage() {
                     {/* Action Buttons */}
                     <div className="border-t border-gray-200 pt-4">
                       <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(order)
+                            setIsModalOpen(true)
+                          }}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          View Details
+                        </button>
                         {order.status === 'pending' && (
                           <>
                             <button
@@ -334,6 +393,24 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+      
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <OrderDetailModal
+          order={selectedOrder}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false)
+            setSelectedOrder(null)
+          }}
+          onStatusUpdate={(orderId, status, notes) => {
+            updateOrderStatus(orderId, status, notes)
+            setIsModalOpen(false)
+            setSelectedOrder(null)
+          }}
+          updateLoading={updateLoading === selectedOrder.id}
+        />
+      )}
     </div>
   )
 }

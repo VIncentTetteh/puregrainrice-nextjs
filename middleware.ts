@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAdminUser } from '@/lib/admin'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -41,6 +42,13 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route)
   )
 
+  // Define admin routes that require admin privileges
+  const adminRoutes = ['/admin', '/api/admin']
+  const isAdminRoute = adminRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route) && 
+    !request.nextUrl.pathname.startsWith('/admin/login')
+  )
+
   if (
     !user &&
     isProtectedRoute
@@ -48,6 +56,27 @@ export async function middleware(request: NextRequest) {
     // no user, redirect to login page for protected routes
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (
+    !user &&
+    isAdminRoute
+  ) {
+    // no user, redirect to admin login page for admin routes
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (
+    user &&
+    isAdminRoute &&
+    !isAdminUser(user.email)
+  ) {
+    // user is not admin, redirect to home page
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
