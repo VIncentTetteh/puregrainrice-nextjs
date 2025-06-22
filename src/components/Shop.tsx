@@ -9,7 +9,7 @@ const Shop = () => {
     {
       id: 'puregrain-5kg',
       name: 'PureGrain Rice 5KG',
-      price: 85,
+      price: 120,
       weight: '5KG',
       bgColor: 'bg-gradient-to-br from-rice-gold to-yellow-600',
       buttonColor: 'bg-rice-gold hover:bg-yellow-600',
@@ -18,7 +18,7 @@ const Shop = () => {
     {
       id: 'puregrain-10kg',
       name: 'PureGrain Rice 10KG',
-      price: 160,
+      price: 230,
       weight: '10KG',
       bgColor: 'bg-gradient-to-br from-ghana-green to-green-700',
       buttonColor: 'bg-ghana-green hover:bg-green-700',
@@ -29,7 +29,7 @@ const Shop = () => {
     {
       id: 'puregrain-25kg',
       name: 'PureGrain Rice 25KG',
-      price: 380,
+      price: 450,
       weight: '25KG Bulk',
       bgColor: 'bg-gradient-to-br from-gray-700 to-black',
       buttonColor: 'bg-gray-800 hover:bg-black',

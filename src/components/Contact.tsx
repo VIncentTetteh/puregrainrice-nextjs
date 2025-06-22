@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -37,7 +39,7 @@ const Contact = () => {
       const result = await response.json();
 
       if (result.success) {
-        alert('Thank you for your message! We will get back to you soon.');
+        toast.success('Thank you for your message! We will get back to you soon.');
         setFormData({
           firstName: '',
           lastName: '',
@@ -51,7 +53,7 @@ const Contact = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Sorry, there was an error sending your message. Please try again or contact us directly via WhatsApp.');
+      toast.error('Sorry, there was an error sending your message. Please try again or contact us directly via WhatsApp.');
     } finally {
       setIsSubmitting(false);
     }
