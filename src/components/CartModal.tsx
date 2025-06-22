@@ -57,6 +57,7 @@ const CartModal = () => {
   const router = useRouter();
 
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
 
   const checkout = () => {
     if (cart.length === 0) {
@@ -69,8 +70,8 @@ const CartModal = () => {
       return;
     }
     
-    // Use the authenticated user's email directly
-    handlePayment(user.email!);
+    // Show checkout form to collect delivery details
+    setShowCheckoutForm(true);
   };
 
   const handlePayment = (customerEmail: string) => {
@@ -108,39 +109,55 @@ const CartModal = () => {
           setIsProcessingOrder(true);
           try {
             const orderItems = cart.map(item => ({
+              id: item.id,
               product_id: item.id,
               quantity: item.quantity,
+              price: item.price, // Add price at item level
+              name: item.name,
+              image: item.image,
+              description: item.description,
+              weight_kg: item.weight_kg,
               products: {
                 name: item.name,
                 price: item.price,
-                image_url: item.image || ''
+                description: item.description,
+                image_url: item.image || '',
+                weight_kg: item.weight_kg
               }
-            }));
+            }))
 
             const shippingAddress = {
               email: customerEmail,
+              user_email: customerEmail,
+              user_full_name: 'Quick Order Customer',
+              user_phone: '000-000-0000',
+              delivery_address: 'Address to be confirmed',
+              delivery_city: 'Accra',
               payment_reference: response.reference
             };
 
             const order = await createOrder(orderItems, shippingAddress);
 
             if (order && order.id) {
+              console.log('Order created successfully in CartModal:', order);
               toast.success(`🎉 Payment successful! Order #${order.id.slice(-8)} created!`);
               clearCartOnOrderSuccess();
               setIsCartOpen(false);
-              // Add small delay to ensure cart clearing completes
+              // Add longer delay to ensure cart clearing completes and UI updates
               setTimeout(() => {
+                console.log('Navigating to dashboard from CartModal...');
                 router.push('/dashboard');
-              }, 500);
+              }, 1000);
             } else {
+              console.error('Order creation failed in CartModal - no order ID returned');
               // Even if order creation appears to fail, the payment was successful
-              // Let's check if the order was actually created by redirecting to dashboard
-              toast.success('🎉 Payment successful! Redirecting to your orders...');
+              toast.success('🎉 Payment successful! Redirecting to check your orders...');
               clearCartOnOrderSuccess();
               setIsCartOpen(false);
               setTimeout(() => {
+                console.log('Navigating to dashboard after payment success...');
                 router.push('/dashboard');
-              }, 500);
+              }, 1000);
             }
           } catch (error) {
             console.error('Error creating order:', error);
@@ -275,6 +292,18 @@ const CartModal = () => {
           </div>
         </div>
       </div>
+      
+      {/* Checkout Form Modal */}
+      {showCheckoutForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-screen overflow-y-auto">
+            <CheckoutForm 
+              onBack={() => setShowCheckoutForm(false)}
+              onOrderSuccess={() => setShowCheckoutForm(false)}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };

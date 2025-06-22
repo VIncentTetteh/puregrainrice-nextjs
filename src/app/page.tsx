@@ -5,6 +5,7 @@ import About from '@/components/About';
 import Products from '@/components/Products';
 import Benefits from '@/components/Benefits';
 import Shop from '@/components/Shop';
+import ReviewsCarousel from '@/components/ReviewsCarousel';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -14,9 +15,10 @@ export default function Home() {
     <LayoutWrapper>
       <div className="bg-ricecream text-gray-800">
         <Hero />
-        <About />
+<About />
         <Products />
         <Benefits />
+        <ReviewsCarousel />
         <Shop />
         <Contact />
         <Footer />

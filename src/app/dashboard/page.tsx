@@ -3,13 +3,20 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrders } from '@/app/hooks/useOrders'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import LayoutWrapper from '@/components/LayoutWrapper'
+import ReviewForm from '@/components/ReviewForm'
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
-  const { orders, loading: ordersLoading } = useOrders()
+  const { orders, loading: ordersLoading, refetch } = useOrders()
   const router = useRouter()
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [selectedReview, setSelectedReview] = useState<{
+    orderId: string
+    productId: string
+    productName: string
+  } | null>(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -97,6 +104,15 @@ export default function DashboardPage() {
       default:
         return 'Order status unknown'
     }
+  }
+
+  const handleReviewClick = (orderId: string, productId: string, productName: string) => {
+    setSelectedReview({ orderId, productId, productName })
+    setShowReviewForm(true)
+  }
+
+  const handleReviewSubmitted = () => {
+    refetch() // Refresh orders to update review status
   }
 
   return (
@@ -191,8 +207,19 @@ export default function DashboardPage() {
                                     </p>
                                   </div>
                                 </div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {formatCurrency(item.price * item.quantity)}
+                                <div className="text-right">
+                                  <div className="text-sm font-medium text-gray-900 mb-2">
+                                    {formatCurrency(item.price * item.quantity)}
+                                  </div>
+                                  {order.status === 'delivered' && (
+                                    <button
+                                      onClick={() => handleReviewClick(order.id, item.products.id || item.product_id, item.products.name)}
+                                      className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition-colors"
+                                    >
+                                      <i className="fas fa-star mr-1"></i>
+                                      Write Review
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -211,6 +238,20 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      
+      {/* Review Form Modal */}
+      {showReviewForm && selectedReview && (
+        <ReviewForm
+          orderId={selectedReview.orderId}
+          productId={selectedReview.productId}
+          productName={selectedReview.productName}
+          onClose={() => {
+            setShowReviewForm(false)
+            setSelectedReview(null)
+          }}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
     </LayoutWrapper>
   )
 }

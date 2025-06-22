@@ -159,21 +159,93 @@ export default function OrderDetailModal({
                   <div>
                     <h4 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h4>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="space-y-2">
-                        <p className="text-sm">
-                          <span className="font-medium text-gray-900">Email:</span>{' '}
-                          <span className="text-gray-700">{order.shipping_address.email}</span>
-                        </p>
-                        <p className="text-sm">
-                          <span className="font-medium text-gray-900">Phone:</span>{' '}
-                          <span className="text-gray-700">{order.shipping_address.phone || 'Not provided'}</span>
-                        </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm">
+                            <span className="font-medium text-gray-900">Email:</span>{' '}
+                            <span className="text-gray-700">{order.shipping_address.email}</span>
+                          </p>
+                          <a
+                            href={`mailto:${order.shipping_address.email}`}
+                            className="text-blue-600 hover:text-blue-700 text-sm"
+                          >
+                            <i className="fas fa-envelope"></i>
+                          </a>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm">
+                            <span className="font-medium text-gray-900">Phone:</span>{' '}
+                            <span className="text-gray-700">{order.shipping_address.phone || 'Not provided'}</span>
+                          </p>
+                          {order.shipping_address.phone && (
+                            <a
+                              href={`tel:${order.shipping_address.phone}`}
+                              className="text-blue-600 hover:text-blue-700 text-sm mr-2"
+                            >
+                              <i className="fas fa-phone"></i>
+                            </a>
+                          )}
+                        </div>
+                        {(order.shipping_address.whatsappNumber || order.shipping_address.phone) && (
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm">
+                              <span className="font-medium text-gray-900">WhatsApp:</span>{' '}
+                              <span className="text-gray-700">
+                                {order.shipping_address.whatsappNumber || order.shipping_address.phone}
+                              </span>
+                            </p>
+                            <a
+                              href={`https://wa.me/${(order.shipping_address.whatsappNumber || order.shipping_address.phone).replace(/[^0-9]/g, '')}?text=Hello! This is regarding your order #${order.id.slice(-8)}. How can we help you today?`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:text-green-700 text-sm"
+                            >
+                              <i className="fab fa-whatsapp"></i>
+                            </a>
+                          </div>
+                        )}
                         {order.shipping_address.address && (
                           <p className="text-sm">
                             <span className="font-medium text-gray-900">Address:</span>{' '}
                             <span className="text-gray-700">{order.shipping_address.address}</span>
                           </p>
                         )}
+                        {order.shipping_address.city && (
+                          <p className="text-sm">
+                            <span className="font-medium text-gray-900">City:</span>{' '}
+                            <span className="text-gray-700">{order.shipping_address.city}</span>
+                          </p>
+                        )}
+                        {order.shipping_address.notes && (
+                          <p className="text-sm">
+                            <span className="font-medium text-gray-900">Delivery Notes:</span>{' '}
+                            <span className="text-gray-700">{order.shipping_address.notes}</span>
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Quick Contact Actions */}
+                      <div className="mt-4 pt-3 border-t border-gray-200">
+                        <div className="flex space-x-2">
+                          <a
+                            href={`mailto:${order.shipping_address.email}?subject=Order Update - ${order.id.slice(-8)}`}
+                            className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            <i className="fas fa-envelope mr-2"></i>
+                            Email
+                          </a>
+                          {(order.shipping_address.whatsappNumber || order.shipping_address.phone) && (
+                            <a
+                              href={`https://wa.me/${(order.shipping_address.whatsappNumber || order.shipping_address.phone).replace(/[^0-9]/g, '')}?text=Hello! This is regarding your order #${order.id.slice(-8)}. How can we help you today?`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100"
+                            >
+                              <i className="fab fa-whatsapp mr-2"></i>
+                              WhatsApp
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

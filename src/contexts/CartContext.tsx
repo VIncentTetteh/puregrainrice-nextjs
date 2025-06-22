@@ -10,11 +10,21 @@ export interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  description?: string;
+  weight_kg?: number;
+  // For compatibility with new schema
+  products?: {
+    name: string;
+    price: number;
+    description?: string;
+    image_url?: string;
+    weight_kg?: number;
+  };
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (productId: string, productName: string, price: number, image?: string) => void;
+  addToCart: (productId: string, productName: string, price: number, image?: string, description?: string, weight_kg?: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, newQuantity: number) => void;
   clearCart: () => void;
@@ -161,7 +171,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addToCart = useCallback(async (productId: string, productName: string, price: number, image?: string) => {
+  const addToCart = useCallback(async (productId: string, productName: string, price: number, image?: string, description?: string, weight_kg?: number) => {
     let newQuantity = 1;
     
     setCart(prevCart => {
@@ -172,13 +182,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         existingItem.quantity += 1;
         newQuantity = existingItem.quantity;
       } else {
-        newCart.push({
+        const newItem: CartItem = {
           id: productId,
           name: productName,
           price: price,
           quantity: 1,
-          image
-        });
+          image,
+          description,
+          weight_kg,
+          // Add products object for compatibility with order creation
+          products: {
+            name: productName,
+            price: price,
+            description,
+            image_url: image,
+            weight_kg
+          }
+        };
+        newCart.push(newItem);
         newQuantity = 1;
       }
       

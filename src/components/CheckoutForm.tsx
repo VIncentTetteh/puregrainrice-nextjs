@@ -28,6 +28,7 @@ interface PaystackResponse {
 
 interface CheckoutFormProps {
   onBack: () => void
+  onOrderSuccess?: () => void
 }
 
 const GHANA_CITIES = [
@@ -36,9 +37,9 @@ const GHANA_CITIES = [
   'Tema', 'Madina', 'Kasoa', 'Ashaiman', 'Aflao', 'Berekum', 'Akim Oda'
 ]
 
-export default function CheckoutForm({ onBack }: CheckoutFormProps) {
+export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormProps) {
   const { user } = useAuth()
-  const { cart, totalAmount, clearCartOnOrderSuccess } = useCart()
+  const { cart, totalAmount, clearCartOnOrderSuccess, setIsCartOpen } = useCart()
   const { createOrder } = useOrders()
   const router = useRouter()
 
@@ -143,24 +144,42 @@ export default function CheckoutForm({ onBack }: CheckoutFormProps) {
   const handleOrderCreation = async (paymentResponse: PaystackResponse) => {
     setIsProcessing(true)
     try {
+      // Prepare order items with proper structure for new schema
       const orderItems = cart.map(item => ({
-        product_id: item.id,
+        id: item.id, // Cart item ID (will be used as product_id)
+        product_id: item.id, // Use id as product_id since CartContext uses id field
         quantity: item.quantity,
+        price: item.price, // Add price at item level
+        name: item.name, // Add name at item level
+        image: item.image, // Add image at item level
+        description: item.description, // Add description if available
+        weight_kg: item.weight_kg, // Add weight if available
         products: {
           name: item.name,
           price: item.price,
-          image_url: item.image || ''
+          description: item.description,
+          image_url: item.image || '',
+          weight_kg: item.weight_kg
         }
       }))
 
       const orderData = {
+        // Map to new schema field names
+        email: deliveryDetails.email,
+        fullName: deliveryDetails.fullName, 
+        phone: deliveryDetails.phone,
+        address: deliveryDetails.deliveryAddress,
+        city: deliveryDetails.deliveryCity,
+        notes: deliveryDetails.deliveryNotes,
+        payment_reference: paymentResponse.reference,
+        // Also include with new schema field names for useOrders
         user_email: deliveryDetails.email,
         user_full_name: deliveryDetails.fullName,
         user_phone: deliveryDetails.phone,
         delivery_address: deliveryDetails.deliveryAddress,
         delivery_city: deliveryDetails.deliveryCity,
         delivery_notes: deliveryDetails.deliveryNotes,
-        payment_reference: paymentResponse.reference,
+        // Legacy field for backward compatibility
         shipping_address: {
           email: deliveryDetails.email,
           fullName: deliveryDetails.fullName,
@@ -175,15 +194,33 @@ export default function CheckoutForm({ onBack }: CheckoutFormProps) {
       const order = await createOrder(orderItems, orderData)
 
       if (order?.id) {
+        console.log('Order created successfully:', order)
         toast.success(`🎉 Order placed successfully! Order #${order.id.slice(-8)}`)
+        
+        // Clear cart
         clearCartOnOrderSuccess()
         
         // Generate delivery confirmation code
-        await generateDeliveryCode(order.id)
+        try {
+          await generateDeliveryCode(order.id)
+        } catch (error) {
+          console.error('Error generating delivery code:', error)
+        }
         
-        router.push('/dashboard?tab=orders')
+        // Close all modals first
+        if (onOrderSuccess) {
+          onOrderSuccess()
+        }
+        setIsCartOpen(false)
+        
+        // Navigate to dashboard with a longer delay to ensure everything is properly closed
+        setTimeout(() => {
+          console.log('Navigating to dashboard...')
+          router.push('/dashboard')
+        }, 1000)
       } else {
-        throw new Error('Failed to create order')
+        console.error('Order creation failed - no order ID returned')
+        throw new Error('Failed to create order - no order ID returned')
       }
     } catch (error) {
       console.error('Error creating order:', error)

@@ -19,16 +19,10 @@ export async function GET(request: NextRequest) {
     }
     
     // Get all customers with their order statistics
-    const { data: customers, error } = await supabase
+    const { data, error } = await supabase
       .from('customers')
       .select(`
-        *,
-        orders (
-          id,
-          status,
-          total_amount,
-          created_at
-        )
+        *
       `)
       .order('created_at', { ascending: false })
 
@@ -36,6 +30,8 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching customers:', error)
       return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 })
     }
+
+    const customers: any[] = data ?? [];
 
     // Process customer data to include statistics
     const processedCustomers = customers.map(customer => {
