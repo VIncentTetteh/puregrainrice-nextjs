@@ -7,6 +7,7 @@ import { useOrders } from '@/app/hooks/useOrders';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import CheckoutForm from '@/components/CheckoutForm';
 
 interface PaystackResponse {
   reference: string;
