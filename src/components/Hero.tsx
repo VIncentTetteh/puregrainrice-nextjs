@@ -50,12 +50,12 @@ const Hero = () => {
       {/* Foreground content */}
       <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold text-rice-gold mb-6">
+          <h1 className="text-5xl md:text-7xl font-bold text-rice-gold mb-6 ">
             PureGrain Rice
           </h1>
           <p className="text-xl md:text-2xl text-white mb-8">
             Premium Aromatic Long Grain Rice<br />
-            <span className="text-ghana-green font-semibold">
+            <span className="text-ghana-green font-semibold bg-white px-2 rounded">
               Proudly Produced in Ghana
             </span>
           </p>

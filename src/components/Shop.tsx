@@ -1,16 +1,20 @@
 'use client';
 
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const Shop = () => {
-  const { addToCart } = useCart();
+  const { addToCart, setIsCartOpen } = useCart();
+  const { user } = useAuth();
 
   const products = [
     {
       id: 'puregrain-5kg',
       name: 'PureGrain Rice 5KG',
-      price: 120,
+      price: 1,
       weight: '5KG',
+      image: '/rice-5kg.jpg',
       bgColor: 'bg-gradient-to-br from-rice-gold to-yellow-600',
       buttonColor: 'bg-rice-gold hover:bg-yellow-600',
       features: ['Premium aromatic rice', '5KG sealed package', 'Fresh & clean']
@@ -20,6 +24,7 @@ const Shop = () => {
       name: 'PureGrain Rice 10KG',
       price: 230,
       weight: '10KG',
+      image: '/rice-10kg.jpg',
       bgColor: 'bg-gradient-to-br from-ghana-green to-green-700',
       buttonColor: 'bg-ghana-green hover:bg-green-700',
       features: ['Premium aromatic rice', '10KG sealed package', 'Best value for families'],
@@ -31,12 +36,27 @@ const Shop = () => {
       name: 'PureGrain Rice 25KG',
       price: 450,
       weight: '25KG Bulk',
+      image: '/rice-25kg.jpg',
       bgColor: 'bg-gradient-to-br from-gray-700 to-black',
       buttonColor: 'bg-gray-800 hover:bg-black',
       features: ['Premium aromatic rice', '25KG bulk package', 'Perfect for businesses'],
       savings: '₵45'
     }
   ];
+
+  const handleAddToCart = async (product: any) => {
+    await addToCart(product.id, product.name, product.price, product.image);
+    
+    // Show success message
+    toast.success(`${product.name} added to cart!`);
+    
+    // If user is not logged in, show the cart modal to encourage checkout
+    if (!user) {
+      setTimeout(() => {
+        setIsCartOpen(true);
+      }, 500); // Small delay so user sees the toast first
+    }
+  };
 
   return (
     <section id="shop" className="py-20 bg-rice-cream">
@@ -81,7 +101,7 @@ const Shop = () => {
                   ))}
                 </ul>
                 <button 
-                  onClick={() => addToCart(product.id, product.name, product.price)}
+                  onClick={() => handleAddToCart(product)}
                   className={`w-full ${product.buttonColor} text-white py-3 rounded-lg font-semibold transition duration-300`}
                 >
                   Add to Cart

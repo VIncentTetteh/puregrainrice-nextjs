@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { totalItems, setIsCartOpen } = useCart();
+  const { user, signOut } = useAuth();
 
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
@@ -54,6 +57,24 @@ const Navigation = () => {
                 </span>
               )}
             </button>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <Link href="/dashboard" className="text-gray-700 hover:text-rice-gold transition duration-300">
+                  Dashboard
+                </Link>
+                <button 
+                  onClick={signOut}
+                  className="text-gray-700 hover:text-rice-gold transition duration-300"
+                >
+                  Logout
+                </button>
+                <span className="text-sm text-gray-600">Welcome, {user.email}</span>
+              </div>
+            ) : (
+              <Link href="/login" className="bg-rice-gold text-white px-4 py-2 rounded hover:bg-yellow-600 transition duration-300">
+                Login
+              </Link>
+            )}
           </div>
           <div className="md:hidden flex items-center">
             <button 
@@ -89,6 +110,23 @@ const Navigation = () => {
           <button onClick={() => setIsCartOpen(true)} className="block px-3 py-2 text-gray-700 hover:text-rice-gold w-full text-left">
             Cart ({totalItems})
           </button>
+          {user ? (
+            <>
+              <Link href="/dashboard" className="block px-3 py-2 text-gray-700 hover:text-rice-gold w-full text-left">
+                Dashboard
+              </Link>
+              <button 
+                onClick={signOut}
+                className="block px-3 py-2 text-gray-700 hover:text-rice-gold w-full text-left"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link href="/login" className="block px-3 py-2 bg-rice-gold text-white mx-3 rounded text-center">
+              Login
+            </Link>
+          )}
         </div>
       </div>
     </nav>

@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOrders } from '@/app/hooks/useOrders';
 import toast from 'react-hot-toast';
-import EmailPromptModal from '@/components/EmailPromptModal';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface PaystackResponse {
   reference: string;
@@ -45,21 +48,31 @@ const CartModal = () => {
     totalAmount,
     updateQuantity,
     removeFromCart,
-    clearCart
+    clearCart,
+    clearCartOnOrderSuccess
   } = useCart();
+  const { user } = useAuth();
+  const { createOrder } = useOrders();
+  const router = useRouter();
 
-  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   const checkout = () => {
     if (cart.length === 0) {
       toast.error('Your cart is empty!');
-      console.log('checkout clicked');
       return;
     }
-    setShowEmailModal(true);
+    
+    if (!user) {
+      toast.error('Please sign in to place an order');
+      return;
+    }
+    
+    // Use the authenticated user's email directly
+    handlePayment(user.email!);
   };
 
-  const handleEmailSubmit = (customerEmail: string) => {
+  const handlePayment = (customerEmail: string) => {
     const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY_TEST || '';
     if (!paystackKey) {
       toast.error('Payment system is not configured. Please contact support.');
@@ -67,6 +80,11 @@ const CartModal = () => {
     }
 
     const totalInPesewas = totalAmount * 100;
+
+    if (typeof window === 'undefined' || !window.PaystackPop || typeof window.PaystackPop.setup !== 'function') {
+      toast.error('Payment system not loaded. Please try again.');
+      return;
+    }
 
     const handler = window.PaystackPop.setup({
       key: paystackKey,
@@ -85,10 +103,51 @@ const CartModal = () => {
         business_name: "PurePlatter Foods LTD"
       },
       callback: function (response: PaystackResponse) {
-        toast.success(`🎉 Payment successful! Reference: ${response.reference}`);
-        clearCart();
-        setIsCartOpen(false);
-        console.log('Payment successful:', response);
+        (async () => {
+          setIsProcessingOrder(true);
+          try {
+            const orderItems = cart.map(item => ({
+              product_id: item.id,
+              quantity: item.quantity,
+              products: {
+                name: item.name,
+                price: item.price,
+                image_url: item.image || ''
+              }
+            }));
+
+            const shippingAddress = {
+              email: customerEmail,
+              payment_reference: response.reference
+            };
+
+            const order = await createOrder(orderItems, shippingAddress);
+
+            if (order && order.id) {
+              toast.success(`🎉 Payment successful! Order #${order.id.slice(-8)} created!`);
+              clearCartOnOrderSuccess();
+              setIsCartOpen(false);
+              // Add small delay to ensure cart clearing completes
+              setTimeout(() => {
+                router.push('/dashboard');
+              }, 500);
+            } else {
+              // Even if order creation appears to fail, the payment was successful
+              // Let's check if the order was actually created by redirecting to dashboard
+              toast.success('🎉 Payment successful! Redirecting to your orders...');
+              clearCartOnOrderSuccess();
+              setIsCartOpen(false);
+              setTimeout(() => {
+                router.push('/dashboard');
+              }, 500);
+            }
+          } catch (error) {
+            console.error('Error creating order:', error);
+            toast.error('Payment successful but failed to create order. Please contact support.');
+          } finally {
+            setIsProcessingOrder(false);
+          }
+        })();
       },
       onClose: function () {
         toast('Payment dialog was closed.');
@@ -102,11 +161,6 @@ const CartModal = () => {
 
   return (
     <>
-      <EmailPromptModal
-        isOpen={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        onSubmit={handleEmailSubmit}
-      />
 
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl max-w-2xl w-full max-h-screen overflow-y-auto">
@@ -172,12 +226,42 @@ const CartModal = () => {
                 </div>
 
                 <div className="mt-6">
-                  <button
-                    onClick={checkout}
-                    className="w-full bg-rice-gold hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition duration-300 mb-3"
-                  >
-                    Proceed to Checkout
-                  </button>
+                  {user ? (
+                    <>
+                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          Checkout as: <span className="font-medium text-gray-800">{user.email}</span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={checkout}
+                        disabled={isProcessingOrder}
+                        className="w-full bg-rice-gold hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition duration-300 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessingOrder ? 'Processing...' : 'Proceed to Checkout'}
+                      </button>
+                    </>
+                  ) : (
+                    <div className="mb-3">
+                      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center mb-2">
+                          <i className="fas fa-info-circle text-blue-500 mr-2"></i>
+                          <p className="font-medium text-blue-800">
+                            Ready to checkout?
+                          </p>
+                        </div>
+                        <p className="text-sm text-blue-700">
+                          Sign in to complete your purchase and track your order. Your cart items will be saved!
+                        </p>
+                      </div>
+                      <Link href="/login" onClick={() => setIsCartOpen(false)}>
+                        <button className="w-full bg-rice-gold hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition duration-300 flex items-center justify-center">
+                          <i className="fas fa-sign-in-alt mr-2"></i>
+                          Sign In to Checkout
+                        </button>
+                      </Link>
+                    </div>
+                  )}
                   <button
                     onClick={clearCart}
                     className="w-full border border-gray-300 text-gray-700 hover:bg-gray-50 py-3 rounded-lg font-semibold transition duration-300"
