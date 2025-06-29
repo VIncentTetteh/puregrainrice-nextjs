@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import LayoutWrapper from '@/components/LayoutWrapper'
 import ReviewForm from '@/components/ReviewForm'
+import Image from 'next/image'
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
@@ -192,28 +193,28 @@ export default function DashboardPage() {
                               <div key={item.id} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
                                 <div className="flex items-center space-x-4">
                                   <div className="flex-shrink-0">
-                                    <img
+                                    <Image
                                       className="h-12 w-12 rounded-md object-cover border border-gray-200"
-                                      src={item.products.image_url || '/placeholder-product.jpg'}
-                                      alt={item.products.name}
+                                      src={item.product_image_url || '/placeholder-product.jpg'}
+                                      alt={item.product_name}
                                     />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900">
-                                      {item.products.name}
+                                      {item.product_name}
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                      Qty: {item.quantity} × {formatCurrency(item.price)}
+                                      Qty: {item.quantity} × {formatCurrency(item.price ?? 0.00)}
                                     </p>
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="text-sm font-medium text-gray-900 mb-2">
-                                    {formatCurrency(item.price * item.quantity)}
+                                    {formatCurrency((item.price ?? 0.00) * item.quantity)}
                                   </div>
                                   {order.status === 'delivered' && (
                                     <button
-                                      onClick={() => handleReviewClick(order.id, item.products.id || item.product_id, item.products.name)}
+                                      onClick={() => handleReviewClick(order.id, item.id || item.product_id, item.product_name)}
                                       className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition-colors"
                                     >
                                       <i className="fas fa-star mr-1"></i>

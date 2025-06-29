@@ -27,7 +27,7 @@ const Navigation = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-rice-gold">PureGrain Rice</h1>
+              <h1 className="text-2xl font-bold text-rice-gold">PurePlatter Foods</h1>
             </div>
           </div>
           <div className="hidden md:flex items-center space-x-8">

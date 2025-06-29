@@ -109,7 +109,7 @@ export default function ReviewsCarousel() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Don't just take our word for it. Here's what our satisfied customers have to say about our premium rice.
+            Don&#39;t just take our word for it. Here&#39;s what our satisfied customers have to say about our premium rice.
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export default function ReviewsCarousel() {
               {/* Review Text */}
               {reviews[currentIndex].review_text && (
                 <blockquote className="text-xl md:text-2xl text-gray-700 font-medium mb-8 leading-relaxed">
-                  "{reviews[currentIndex].review_text}"
+                  &quot;{reviews[currentIndex].review_text}&quot;
                 </blockquote>
               )}
 

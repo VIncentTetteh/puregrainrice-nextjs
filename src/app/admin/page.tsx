@@ -6,13 +6,19 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { isAdminUser } from '@/lib/admin'
 import OrderDetailModal from '@/components/OrderDetailModal'
+import Image from 'next/image'
+
+interface ShippingAddress {
+  email: string
+  [key: string]: string | undefined // Add more fields as needed, or specify them explicitly
+}
 
 interface Order {
   id: string
   total_amount: number
   status: string
   created_at: string
-  shipping_address: any
+  shipping_address: ShippingAddress
   payment_reference: string
   admin_notes?: string
   order_items: {
@@ -306,7 +312,7 @@ export default function AdminPage() {
                           <div key={item.id} className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <div className="flex-shrink-0">
-                                <img
+                                <Image
                                   className="h-10 w-10 rounded-md object-cover"
                                   src={item.products.image_url || '/placeholder-product.jpg'}
                                   alt={item.products.name}

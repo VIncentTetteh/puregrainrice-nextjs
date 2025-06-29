@@ -5,7 +5,7 @@ import About from '@/components/About';
 import Products from '@/components/Products';
 import Benefits from '@/components/Benefits';
 import Shop from '@/components/Shop';
-import ReviewsCarousel from '@/components/ReviewsCarousel';
+// import ReviewsCarousel from '@/components/ReviewsCarousel';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -18,7 +18,7 @@ export default function Home() {
 <About />
         <Products />
         <Benefits />
-        <ReviewsCarousel />
+        {/* <ReviewsCarousel /> */}
         <Shop />
         <Contact />
         <Footer />

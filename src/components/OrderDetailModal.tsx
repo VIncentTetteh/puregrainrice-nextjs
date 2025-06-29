@@ -1,14 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import toast from 'react-hot-toast'
+import Image from 'next/image'
+
+interface ShippingAddress {
+  email?: string
+  phone?: string
+  whatsappNumber?: string
+  address?: string
+  city?: string
+  notes?: string
+}
 
 interface Order {
   id: string
   total_amount: number
   status: string
   created_at: string
-  shipping_address: any
+  shipping_address: ShippingAddress
   payment_reference: string
   admin_notes?: string
   order_items: {
@@ -118,10 +127,12 @@ export default function OrderDetailModal({
                   {order.order_items.map((item) => (
                     <div key={item.id} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
                       <div className="flex-shrink-0">
-                        <img
+                        <Image
                           className="h-16 w-16 rounded-lg object-cover"
                           src={item.products.image_url || '/placeholder-product.jpg'}
                           alt={item.products.name}
+                          width={64}
+                          height={64}
                         />
                       </div>
                       <div className="flex-1">
@@ -195,7 +206,11 @@ export default function OrderDetailModal({
                               </span>
                             </p>
                             <a
-                              href={`https://wa.me/${(order.shipping_address.whatsappNumber || order.shipping_address.phone).replace(/[^0-9]/g, '')}?text=Hello! This is regarding your order #${order.id.slice(-8)}. How can we help you today?`}
+                              href={`https://wa.me/${
+                                (order.shipping_address.whatsappNumber || order.shipping_address.phone)
+                                  ? (order.shipping_address.whatsappNumber || order.shipping_address.phone)!.replace(/[^0-9]/g, '')
+                                  : ''
+                              }?text=Hello! This is regarding your order #${order.id.slice(-8)}. How can we help you today?`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-green-600 hover:text-green-700 text-sm"
@@ -236,7 +251,7 @@ export default function OrderDetailModal({
                           </a>
                           {(order.shipping_address.whatsappNumber || order.shipping_address.phone) && (
                             <a
-                              href={`https://wa.me/${(order.shipping_address.whatsappNumber || order.shipping_address.phone).replace(/[^0-9]/g, '')}?text=Hello! This is regarding your order #${order.id.slice(-8)}. How can we help you today?`}
+                              href={`https://wa.me/${(order.shipping_address.whatsappNumber || order.shipping_address.phone)?.replace(/[^0-9]/g, '')}?text=Hello! This is regarding your order #${order.id.slice(-8)}. How can we help you today?`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100"

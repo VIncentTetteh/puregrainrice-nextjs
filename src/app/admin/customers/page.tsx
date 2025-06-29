@@ -190,7 +190,7 @@ export default function CustomersPage() {
             <div className="flex items-center space-x-4">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'orders' | 'spent' | 'recent')}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="recent">Recent Activity</option>

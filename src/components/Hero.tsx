@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 const riceImages = [
@@ -34,10 +35,13 @@ const Hero = () => {
       {/* Background carousel */}
       <div className="absolute inset-0 z-0">
         {riceImages.map((url, index) => (
-          <img
+          <Image
             key={index}
             src={url}
             alt={`Rice processing ${index}`}
+            fill
+            sizes="100vw"
+            priority={index === 0}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
               index === currentImageIndex ? 'opacity-100' : 'opacity-0'
             }`}
@@ -51,7 +55,7 @@ const Hero = () => {
       <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-bold text-rice-gold mb-6 ">
-            PureGrain Rice
+            PureGrain Rice & More
           </h1>
           <p className="text-xl md:text-2xl text-white mb-8">
             Premium Aromatic Long Grain Rice<br />

@@ -1,11 +1,13 @@
 // Email notification service for order status updates
 // This is a placeholder implementation - replace with your preferred email service
 
+type OrderDetails = Record<string, unknown>;
+
 export async function sendOrderStatusNotification(
   customerEmail: string,
   orderId: string,
   newStatus: string,
-  orderDetails?: any
+  orderDetails?: OrderDetails
 ) {
   // This is a placeholder implementation
   // You can integrate with services like:
@@ -13,23 +15,21 @@ export async function sendOrderStatusNotification(
   // - Resend
   // - Nodemailer
   // - Amazon SES
-  
+
   console.log('Sending email notification:', {
     to: customerEmail,
     orderId,
     newStatus,
     orderDetails
-  })
+  });
+
+  // Always generate the email HTML (even if not sent)
+  const emailHtml = getEmailTemplate(orderId, newStatus);
+  console.log('Generated email HTML:', emailHtml);
 
   // Example implementation with fetch (replace with your email service)
   try {
     // Replace this with your actual email service
-    const emailData = {
-      to: customerEmail,
-      subject: `Order Update - ${orderId}`,
-      html: getEmailTemplate(orderId, newStatus, orderDetails)
-    }
-    
     // Uncomment and configure for your email service
     // const response = await fetch('YOUR_EMAIL_SERVICE_ENDPOINT', {
     //   method: 'POST',
@@ -37,24 +37,28 @@ export async function sendOrderStatusNotification(
     //     'Authorization': `Bearer ${process.env.EMAIL_API_KEY}`,
     //     'Content-Type': 'application/json'
     //   },
-    //   body: JSON.stringify(emailData)
+    //   body: JSON.stringify({
+    //     to: customerEmail,
+    //     subject: `Order Update - ${orderId}`,
+    //     html: emailHtml
+    //   })
     // })
-    
-    console.log('Email notification queued successfully')
-    return { success: true }
+
+    console.log('Email notification queued successfully');
+    return { success: true };
   } catch (error) {
-    console.error('Failed to send email notification:', error)
-    return { success: false, error }
+    console.error('Failed to send email notification:', error);
+    return { success: false, error };
   }
 }
 
-function getEmailTemplate(orderId: string, status: string, orderDetails?: any) {
+function getEmailTemplate(orderId: string, status: string) {
   const statusMessages = {
     confirmed: 'Your order has been confirmed and is being prepared.',
     shipped: 'Great news! Your order has been shipped and is on its way.',
     delivered: 'Your order has been delivered. We hope you enjoy your rice!',
     cancelled: 'Unfortunately, your order has been cancelled.'
-  }
+  };
 
   return `
     <!DOCTYPE html>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -14,12 +14,28 @@ interface OrderItem {
   quantity: number
   unit_price: number
   total_price: number
-  // For backward compatibility
   price?: number
   products?: {
     name: string
     image_url: string
   }
+}
+
+interface ShippingAddress {
+  email?: string
+  user_email?: string
+  fullName?: string
+  user_full_name?: string
+  phone?: string
+  user_phone?: string
+  address?: string
+  delivery_address?: string
+  city?: string
+  delivery_city?: string
+  notes?: string
+  delivery_notes?: string
+  payment_reference?: string
+  [key: string]: unknown
 }
 
 interface Order {
@@ -35,7 +51,7 @@ interface Order {
   delivery_notes?: string
   payment_reference?: string
   payment_status: string
-  shipping_address?: any // For backward compatibility
+  shipping_address?: ShippingAddress
   created_at: string
   order_items: OrderItem[]
 }
@@ -46,19 +62,10 @@ export function useOrders() {
   const { user } = useAuth()
   const supabase = createClient()
 
-  useEffect(() => {
-    if (user) {
-      fetchOrders()
-    } else {
-      setOrders([])
-      setLoading(false)
-    }
-  }, [user])
-
-  const fetchOrders = async () => {
+  // Replace 'any' with explicit types
+  const fetchOrders = useCallback(async () => {
     if (!user) return
 
-    // Try new schema first, then fallback to old schema
     let { data, error } = await supabase
       .from('orders')
       .select(`
@@ -78,7 +85,6 @@ export function useOrders() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    // If new schema fails, try old schema
     if (error) {
       console.log('New schema failed for fetching, trying old schema...')
       const oldSchemaResult = await supabase
@@ -102,10 +108,10 @@ export function useOrders() {
     if (error) {
       console.error('Error fetching orders (both schemas failed):', error)
     } else {
-      // Transform the data to match the expected interface
-      const ordersWithProductInfo = (data || []).map(order => ({
+      // Use Order and OrderItem types instead of any
+      const ordersWithProductInfo = (data || []).map((order: Order) => ({
         ...order,
-        order_items: order.order_items.map(item => ({
+        order_items: order.order_items.map((item: OrderItem) => ({
           ...item,
           price: item.unit_price || item.price, // Handle both schemas
           products: {
@@ -117,9 +123,37 @@ export function useOrders() {
       setOrders(ordersWithProductInfo)
     }
     setLoading(false)
-  }
+  }, [supabase, user])
 
-  const createOrder = async (cartItems: any[], shippingAddress: any) => {
+  useEffect(() => {
+    if (user) {
+      fetchOrders()
+    } else {
+      setOrders([])
+      setLoading(false)
+    }
+  }, [user, fetchOrders])
+
+  // Specify types for cartItems and shippingAddress
+  const createOrder = async (
+    cartItems: Array<{
+      product_id?: string
+      id?: string
+      quantity: number
+      price?: number
+      products?: {
+        price?: number
+        name?: string
+        description?: string
+        image_url?: string
+        image?: string
+        weight_kg?: number
+      }
+      name?: string
+      image?: string
+    }>,
+    shippingAddress: ShippingAddress
+  ) => {
     if (!user) {
       console.error('No user found for order creation')
       return null

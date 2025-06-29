@@ -2,60 +2,70 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 
-export async function GET(request: NextRequest) {
+interface Order {
+  status: string
+  total_amount: number
+  created_at: string
+}
+
+interface Customer {
+  id: string
+  email: string
+  full_name: string
+  phone: string
+  whatsapp_number: string
+  preferred_delivery_city: string
+  total_orders: number
+  total_spent: number
+  last_order_date: string
+  created_at: string
+  orders?: Order[]
+}
+
+export async function GET() {
   try {
     const supabase = await createClient()
-    
-    // Check authentication and admin privileges
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
     try {
       requireAdmin(user.email)
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Access denied: Admin privileges required' }, { status: 403 })
     }
-    
-    // Get all customers with their order statistics
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('customers')
-      .select(`
-        *
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching customers:', error)
-      return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 })
-    }
+    const customers: Customer[] = data ?? []
 
-    const customers: any[] = data ?? [];
-
-    // Process customer data to include statistics
-    const processedCustomers = customers.map(customer => {
-      const orders = customer.orders || []
-      const completedOrders = orders.filter((order: any) => order.status === 'delivered')
-      const pendingOrders = orders.filter((order: any) => ['pending', 'confirmed', 'shipped'].includes(order.status))
-      
+    const processedCustomers = customers.map((customer) => {
+      const orders: Order[] = customer.orders || []
+      const completedOrders = orders.filter((order) => order.status === 'delivered')
+      const pendingOrders = orders.filter((order) =>
+        ['pending', 'confirmed', 'shipped'].includes(order.status)
+      )
       return {
         ...customer,
         orderCount: orders.length,
         completedOrderCount: completedOrders.length,
         pendingOrderCount: pendingOrders.length,
-        averageOrderValue: orders.length > 0 
-          ? orders.reduce((sum: number, order: any) => sum + order.total_amount, 0) / orders.length 
-          : 0,
-        lastOrderDate: orders.length > 0 
-          ? Math.max(...orders.map((order: any) => new Date(order.created_at).getTime()))
-          : null
+        averageOrderValue:
+          orders.length > 0
+            ? orders.reduce((sum, order) => sum + order.total_amount, 0) / orders.length
+            : 0,
+        lastOrderDate:
+          orders.length > 0
+            ? Math.max(...orders.map((order) => new Date(order.created_at).getTime()))
+            : null,
       }
     })
 
     return NextResponse.json({ customers: processedCustomers })
-  } catch (error) {
-    console.error('Error in customers API:', error)
+  } catch (err) {
+    console.error('Error in customers API:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -63,26 +73,19 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const { customerId, updates } = await request.json()
-    
     if (!customerId) {
       return NextResponse.json({ error: 'Customer ID is required' }, { status: 400 })
     }
-
     const supabase = await createClient()
-    
-    // Check authentication and admin privileges
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
     try {
       requireAdmin(user.email)
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Access denied: Admin privileges required' }, { status: 403 })
     }
-
-    // Update customer record
     const { data: customer, error: updateError } = await supabase
       .from('customers')
       .update({
@@ -92,19 +95,17 @@ export async function PATCH(request: NextRequest) {
       .eq('id', customerId)
       .select()
       .single()
-
     if (updateError) {
       console.error('Error updating customer:', updateError)
       return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 })
     }
-
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       customer,
-      message: 'Customer updated successfully' 
+      message: 'Customer updated successfully'
     })
-  } catch (error) {
-    console.error('Error in customer update:', error)
+  } catch (err) {
+    console.error('Error in customer update:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

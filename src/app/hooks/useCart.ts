@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -22,16 +22,7 @@ export function useCart() {
   const { user } = useAuth()
   const supabase = createClient()
 
-  useEffect(() => {
-    if (user) {
-      fetchCartItems()
-    } else {
-      setCartItems([])
-      setLoading(false)
-    }
-  }, [user])
-
-  const fetchCartItems = async () => {
+  const fetchCartItems = useCallback(async () => {
     if (!user) return
 
     const { data, error } = await supabase
@@ -53,12 +44,21 @@ export function useCart() {
       setCartItems(data || [])
     }
     setLoading(false)
-  }
+  }, [supabase, user])
+
+  useEffect(() => {
+    if (user) {
+      fetchCartItems()
+    } else {
+      setCartItems([])
+      setLoading(false)
+    }
+  }, [user, fetchCartItems])
 
   const addToCart = async (productId: string, quantity: number = 1) => {
     if (!user) return
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('cart_items')
       .upsert(
         { 

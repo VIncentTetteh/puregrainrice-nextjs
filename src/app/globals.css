@@ -13,7 +13,7 @@
   body {
     font-family: 'Inter', sans-serif;
   }
-  
+
   html {
     scroll-behavior: smooth;
   }
@@ -23,15 +23,15 @@
   .animation-delay-200 {
     animation-delay: 0.2s;
   }
-  
+
   .animation-delay-400 {
     animation-delay: 0.4s;
   }
-  
+
   .hover-lift {
     transition: transform 0.3s ease;
   }
-  
+
   .hover-lift:hover {
     transform: translateY(-5px);
   }
@@ -53,8 +53,20 @@
   .animate-fade-in-up {
     animation: fadeInUp 0.8s ease-out;
   }
+
   .animate-bounce {
     animation: bounce 1s infinite;
+  }
+
+  .animate-typing {
+    animation: typing 2s steps(14, end) forwards;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: 4px solid var(--rice-gold);
+  }
+
+  .animate-blink {
+    animation: blink 0.8s step-end infinite;
   }
 }
 
@@ -70,7 +82,23 @@
   }
 }
 
-/* You can add bounce keyframes if needed, or rely on Tailwind's default if available */
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    border-color: transparent;
+  }
+  50% {
+    border-color: var(--rice-gold);
+  }
+}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {

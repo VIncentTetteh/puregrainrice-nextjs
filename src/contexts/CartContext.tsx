@@ -64,35 +64,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart]);
 
   // Sync cart with Supabase when user logs in
-  useEffect(() => {
-    if (user && !isSyncing) {
-      const now = Date.now();
-      // Only sync if more than 1 second has passed since last sync
-      if (now - lastSyncTime > 1000) {
-        if (cart.length > 0) {
-          syncCartToSupabase();
-        } else {
-          loadCartFromSupabase();
-        }
-        setLastSyncTime(now);
-      }
-    }
-  }, [user]);
-
-  const syncCartToSupabase = async () => {
+  const syncCartToSupabase = useCallback(async () => {
     if (!user || isSyncing) return;
-    
     setIsSyncing(true);
     try {
-      // First, get existing cart items from Supabase
       const { data: existingItems } = await supabase
         .from('cart_items')
         .select('*')
         .eq('user_id', user.id);
 
       let finalCart = [...cart];
-      
-      // If there are no items in localStorage but items exist in database, use database items
       if (cart.length === 0 && existingItems && existingItems.length > 0) {
         finalCart = existingItems.map(dbItem => ({
           id: dbItem.product_id,
@@ -101,17 +82,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           quantity: dbItem.quantity,
           image: dbItem.image_url
         }));
-      }
-      // If there are items in localStorage, prioritize localStorage (user's current session)
-      // and update the database to match
-      else if (cart.length > 0) {
-        // Clear existing cart items in database first
+      } else if (cart.length > 0) {
         await supabase
           .from('cart_items')
           .delete()
           .eq('user_id', user.id);
 
-        // Insert current localStorage cart items
         const cartItemsToInsert = cart.map(item => ({
           user_id: user.id,
           product_id: item.id,
@@ -124,7 +100,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await supabase
           .from('cart_items')
           .insert(cartItemsToInsert);
-        
+
         finalCart = cart;
       }
 
@@ -135,11 +111,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [user, isSyncing, supabase, cart]);
 
-  const loadCartFromSupabase = async () => {
+  const loadCartFromSupabase = useCallback(async () => {
     if (!user || isSyncing) return;
-    
     setIsSyncing(true);
     try {
       const { data: cartItems } = await supabase
@@ -163,7 +138,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, [user, isSyncing, supabase]);
+
+  useEffect(() => {
+    if (user && !isSyncing) {
+      const now = Date.now();
+      if (now - lastSyncTime > 1000) {
+        if (cart.length > 0) {
+          syncCartToSupabase();
+        } else {
+          loadCartFromSupabase();
+        }
+        setLastSyncTime(now);
+      }
+    }
+  }, [user, isSyncing, lastSyncTime, cart.length, syncCartToSupabase, loadCartFromSupabase]);
 
   const syncCart = async () => {
     if (user) {
@@ -172,15 +161,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = useCallback(async (productId: string, productName: string, price: number, image?: string, description?: string, weight_kg?: number) => {
-    let newQuantity = 1;
-    
     setCart(prevCart => {
       const newCart = [...prevCart];
       const existingItem = newCart.find(item => item.id === productId);
-      
+
       if (existingItem) {
         existingItem.quantity += 1;
-        newQuantity = existingItem.quantity;
       } else {
         const newItem: CartItem = {
           id: productId,
@@ -190,7 +176,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           image,
           description,
           weight_kg,
-          // Add products object for compatibility with order creation
           products: {
             name: productName,
             price: price,
@@ -200,9 +185,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           }
         };
         newCart.push(newItem);
-        newQuantity = 1;
       }
-      
+
       return newCart;
     });
 

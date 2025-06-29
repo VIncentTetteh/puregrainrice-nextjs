@@ -4,47 +4,60 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
+type Product = {
+  id: string
+  name: string
+  price: number
+  weight: string
+  image: string
+  bgColor: string
+  buttonColor: string
+  features: string[]
+  popular?: boolean
+  savings?: string
+}
+
 const Shop = () => {
   const { addToCart, setIsCartOpen } = useCart();
   const { user } = useAuth();
 
-  const products = [
+  const products: Product[] = [
     {
       id: 'puregrain-5kg',
       name: 'PureGrain Rice 5KG',
-      price: 1,
+      price: 120,
       weight: '5KG',
       image: '/rice-5kg.jpg',
       bgColor: 'bg-gradient-to-br from-rice-gold to-yellow-600',
       buttonColor: 'bg-rice-gold hover:bg-yellow-600',
-      features: ['Premium aromatic rice', '5KG sealed package', 'Fresh & clean']
+      features: ['Premium aromatic rice', '5KG sealed package', 'Fresh & clean', 'Perfect for small families']
     },
     {
       id: 'puregrain-10kg',
       name: 'PureGrain Rice 10KG',
-      price: 230,
+      price: 240,
       weight: '10KG',
       image: '/rice-10kg.jpg',
       bgColor: 'bg-gradient-to-br from-ghana-green to-green-700',
       buttonColor: 'bg-ghana-green hover:bg-green-700',
-      features: ['Premium aromatic rice', '10KG sealed package', 'Best value for families'],
+      features: ['Premium aromatic rice', '10KG sealed package', 'Best value for families', 'Locally sourced'],
       popular: true,
-      savings: '₵10'
+      savings: ''
     },
     {
       id: 'puregrain-25kg',
       name: 'PureGrain Rice 25KG',
-      price: 450,
+      price: 575,
       weight: '25KG Bulk',
       image: '/rice-25kg.jpg',
       bgColor: 'bg-gradient-to-br from-gray-700 to-black',
       buttonColor: 'bg-gray-800 hover:bg-black',
       features: ['Premium aromatic rice', '25KG bulk package', 'Perfect for businesses'],
-      savings: '₵45'
+      savings: '₵25'
     }
   ];
 
-  const handleAddToCart = async (product: any) => {
+  const handleAddToCart = async (product: Product) => {
     await addToCart(product.id, product.name, product.price, product.image);
     
     // Show success message

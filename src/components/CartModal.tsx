@@ -74,7 +74,8 @@ const CartModal = () => {
     setShowCheckoutForm(true);
   };
 
-  const handlePayment = (customerEmail: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handlePayment = (customerEmail: string) => {
     const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY_TEST || '';
     if (!paystackKey) {
       toast.error('Payment system is not configured. Please contact support.');
