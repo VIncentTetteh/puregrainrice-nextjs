@@ -1,7 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from 'next/font/google';
-import Script from "next/script";
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
