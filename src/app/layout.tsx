@@ -75,12 +75,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <body>
-        <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
+        {/* <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" /> */}
         <link
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
           rel="stylesheet"
         />
-        <Script src="https://unpkg.com/framer-motion@10/dist/framer-motion.js" strategy="afterInteractive" />
+        {/* <Script src="https://unpkg.com/framer-motion@10/dist/framer-motion.js" strategy="afterInteractive" /> */}
 
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"

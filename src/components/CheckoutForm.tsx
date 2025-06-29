@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useOrders } from '@/app/hooks/useOrders'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
 
 interface DeliveryDetails {
   fullName: string
@@ -243,6 +244,8 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
   }
 
   return (
+    <>
+    <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Delivery Details</h2>
@@ -416,5 +419,6 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
         </p>
       </form>
     </div>
+    </>
   )
 }
