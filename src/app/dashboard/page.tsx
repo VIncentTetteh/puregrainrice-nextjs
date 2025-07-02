@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import LayoutWrapper from '@/components/LayoutWrapper'
 import ReviewForm from '@/components/ReviewForm'
-import Image from 'next/image'
+// import Image from 'next/image'
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()

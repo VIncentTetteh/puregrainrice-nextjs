@@ -43,28 +43,36 @@ interface Order {
 }
 
 // Helper function to get status-specific styling and messaging
-const getStatusConfig = (status: string) => {
-  const configs: Record<string, any> = {
+type StatusConfig = {
+  color: string;
+  bgColor: string;
+  icon: string;
+  message: string;
+  nextStep: string;
+};
+
+const getStatusConfig = (status: string): StatusConfig => {
+  const configs: Record<string, StatusConfig> = {
     pending: {
       color: '#f59e0b',
       bgColor: '#fef3c7',
       icon: '⏳',
-      message: 'We\'ve received your order and it\'s being processed.',
-      nextStep: 'You\'ll receive another update once your order is confirmed.'
+      message: "We've received your order and it's being processed.",
+      nextStep: "You'll receive another update once your order is confirmed."
     },
     confirmed: {
       color: '#3b82f6',
       bgColor: '#dbeafe',
       icon: '✅',
       message: 'Great news! Your order has been confirmed.',
-      nextStep: 'We\'re now preparing your items for shipment.'
+      nextStep: "We're now preparing your items for shipment."
     },
     processing: {
       color: '#8b5cf6',
       bgColor: '#ede9fe',
       icon: '📦',
-      message: 'Your order is currently being prepared for shipment.',
-      nextStep: 'You\'ll receive tracking information once it ships.'
+      message: "Your order is currently being prepared for shipment.",
+      nextStep: "You'll receive tracking information once it ships."
     },
     shipped: {
       color: '#10b981',
@@ -78,7 +86,7 @@ const getStatusConfig = (status: string) => {
       bgColor: '#a7f3d0',
       icon: '🎉',
       message: 'Your order has been delivered successfully!',
-      nextStep: 'We hope you love your purchase. Don\'t forget to leave a review!'
+      nextStep: "We hope you love your purchase. Don't forget to leave a review!"
     },
     cancelled: {
       color: '#ef4444',
@@ -88,13 +96,13 @@ const getStatusConfig = (status: string) => {
       nextStep: 'If you have any questions, please contact our support team.'
     }
   };
-  
+
   return configs[status.toLowerCase()] || {
     color: '#6b7280',
     bgColor: '#f3f4f6',
     icon: '📋',
     message: `Your order status has been updated to: ${status}`,
-    nextStep: 'We\'ll keep you informed of any further updates.'
+    nextStep: "We'll keep you informed of any further updates."
   };
 };
 

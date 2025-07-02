@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { isAdminUser } from '@/lib/admin'
 import OrderDetailModal from '@/components/OrderDetailModal'
-import Image from 'next/image'
 
 interface ShippingAddress {
   email: string

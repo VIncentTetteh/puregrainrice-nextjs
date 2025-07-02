@@ -264,8 +264,8 @@ export function useOrders() {
     // Create order items - exclude generated columns
     const newSchemaOrderItems = await Promise.all(cartItems.map(async (item) => {
       let productId = item.product_id || item.id;
-      let originalIdentifier = productId; // Store the original identifier
-      
+      const originalIdentifier = productId; // Store the original identifier
+
       if (!productId) {
         console.error('Missing product_id for item:', item);
         throw new Error('Missing product_id for cart item');
