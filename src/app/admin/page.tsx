@@ -311,13 +311,15 @@ export default function AdminPage() {
                         {order.order_items.map((item) => (
                           <div key={item.id} className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <div className="flex-shrink-0">
+                              {/* <div className="flex-shrink-0">
                                 <Image
                                   className="h-10 w-10 rounded-md object-cover"
                                   src={item.products.image_url || '/placeholder-product.jpg'}
                                   alt={item.products.name}
+                                  width={40}
+                                  height={40}
                                 />
-                              </div>
+                              </div> */}
                               <div>
                                 <p className="text-sm font-medium text-gray-900">
                                   {item.products.name}

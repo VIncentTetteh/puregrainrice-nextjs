@@ -148,6 +148,7 @@ export function useOrders() {
         image_url?: string
         image?: string
         weight_kg?: number
+        sku?: string
       }
       name?: string
       image?: string
@@ -260,68 +261,77 @@ export function useOrders() {
 
     console.log('Order created successfully:', createdOrder)
 
-    // Create order items - try new schema first, then fallback to old schema
-    const newSchemaOrderItems = cartItems.map(item => {
-      const productId = item.product_id || item.id
+    // Create order items - exclude generated columns
+    const newSchemaOrderItems = await Promise.all(cartItems.map(async (item) => {
+      let productId = item.product_id || item.id;
+      let originalIdentifier = productId; // Store the original identifier
+      
       if (!productId) {
-        console.error('Missing product_id for item:', item)
-        throw new Error('Missing product_id for cart item')
+        console.error('Missing product_id for item:', item);
+        throw new Error('Missing product_id for cart item');
       }
+
+      // Check if productId is a valid UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       
-      const unitPrice = item.products?.price || item.price || 0
-      
+      if (!uuidRegex.test(productId)) {
+        console.log(`Product ID "${productId}" is not a UUID, looking up in products table...`);
+        
+        // Try to find the actual UUID by searching for the product with this identifier
+        // Since products table doesn't have SKU, we'll search by name only
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('id, name')
+          .ilike('name', `%${productId}%`)
+          .eq('is_active', true)
+          .limit(1)
+          .single();
+
+        if (productError || !productData) {
+          console.warn(`Could not find product with identifier "${productId}", setting product_id to undefined`);
+          // If we can't find the product, set product_id to undefined (allowed by schema)
+          productId = undefined;
+        } else {
+          productId = productData.id;
+          console.log(`Found product UUID: ${productId} for identifier: ${originalIdentifier}`);
+        }
+      }
+
+      const unitPrice = item.products?.price ?? item.price ?? 0;
+      const productName = item.products?.name ?? item.name ?? 'Unknown Product';
+
       return {
         order_id: createdOrder.id,
-        product_id: productId,
+        product_id: productId, // This will be either a valid UUID or null
+        product_name: productName,
+        product_description: item.products?.description || '',
+        product_image_url: item.products?.image_url || item.products?.image || item.image || '',
+        product_weight_kg: item.products?.weight_kg ?? null,
         quantity: item.quantity,
         unit_price: unitPrice,
-        product_name: item.products?.name || item.name || 'Unknown Product',
-        product_description: item.products?.description || '',
-        product_image_url: item.products?.image_url || item.image || '',
-        product_weight_kg: item.products?.weight_kg || null
-      }
-    })
+        sku: item.products?.sku || originalIdentifier || null // Store original identifier in SKU
+        // Removed total_price as it's a generated column
+        // Removed id as it's auto-generated
+      };
+    }));
 
-    console.log('Creating order items (new schema):', newSchemaOrderItems)
+    console.log('Creating order items (new schema):', newSchemaOrderItems);
 
-    let { error: itemsError } = await supabase
+    const { error: itemsError } = await supabase
       .from('order_items')
-      .insert(newSchemaOrderItems)
-
-    // If new schema fails, try old schema
-    if (itemsError) {
-      console.log('New schema failed, trying old schema for order items...')
-      const oldSchemaOrderItems = cartItems.map(item => {
-        const productId = item.product_id || item.id
-        const price = item.products?.price || item.price || 0
-        
-        return {
-          order_id: createdOrder.id,
-          product_id: productId,
-          quantity: item.quantity,
-          price: price // Old schema uses 'price' instead of 'unit_price'
-        }
-      })
-      
-      console.log('Creating order items (old schema):', oldSchemaOrderItems)
-      
-      const fallbackItemsResult = await supabase
-        .from('order_items')
-        .insert(oldSchemaOrderItems)
-        
-      itemsError = fallbackItemsResult.error
-    }
+      .insert(newSchemaOrderItems);
 
     if (itemsError) {
-      console.error('Error creating order items (both schemas failed):', itemsError)
-      console.error('Items error details:', JSON.stringify(itemsError, null, 2))
+      console.error('Error creating order items:', itemsError);
+      console.error('Items error details:', JSON.stringify(itemsError, null, 2));
+      console.error('Items error code:', itemsError.code);
+      console.error('Items error message:', itemsError.message);
+      console.error('Items error hint:', itemsError.hint);
       // Don't return null here - the order was created, just items failed
-      console.warn('Order created but order items failed. Order ID:', createdOrder.id)
+      console.warn('Order created but order items failed. Order ID:', createdOrder.id);
     } else {
       console.log('Order items created successfully')
     }
-
-    console.log('Order items created successfully')
 
     // Clear cart after successful order
     const { error: clearCartError } = await supabase

@@ -93,6 +93,7 @@ export default function DashboardPage() {
   const getStatusMessage = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending':
+        // sent email to notify user about pending order
         return 'Your order is being processed'
       case 'confirmed':
         return 'Your order has been confirmed and will be prepared for shipping'
@@ -192,13 +193,13 @@ export default function DashboardPage() {
                             {order.order_items.map((item) => (
                               <div key={item.id} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
                                 <div className="flex items-center space-x-4">
-                                  <div className="flex-shrink-0">
+                                  {/* <div className="flex-shrink-0">
                                     <Image
                                       className="h-12 w-12 rounded-md object-cover border border-gray-200"
                                       src={item.product_image_url || '/placeholder-product.jpg'}
                                       alt={item.product_name}
                                     />
-                                  </div>
+                                  </div> */}
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900">
                                       {item.product_name}

@@ -1,4 +1,9 @@
+import { useState } from 'react';
+import QuoteModal from './QuoteModal'; // import the modal
+
 const Products = () => {
+  const [showQuote, setShowQuote] = useState(false);
+
   return (
     <section id="products" className="py-20 bg-[#F5F5DC]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,10 +54,14 @@ const Products = () => {
                 </ul>
                 
                 <div className="mt-8">
-                    <button className="bg-rice-gold hover:bg-yellow-600 text-white px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl">
-                        Get Quote
-                    </button>
+                  <button
+                    className="bg-rice-gold hover:bg-yellow-600 text-white px-8 py-3 rounded-full font-semibold transition duration-300 shadow-lg hover:shadow-xl"
+                    onClick={() => setShowQuote(true)}
+                  >
+                    Get Quote
+                  </button>
                 </div>
+                <QuoteModal open={showQuote} onClose={() => setShowQuote(false)} />
               </div>
             </div>
           </div>

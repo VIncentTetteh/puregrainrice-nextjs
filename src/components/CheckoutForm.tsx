@@ -208,6 +208,13 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
           console.error('Error generating delivery code:', error)
         }
         
+        // Notify admin via backend API
+        fetch('/api/notify-admin-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(order),
+        });
+
         // Close all modals first
         if (onOrderSuccess) {
           onOrderSuccess()
