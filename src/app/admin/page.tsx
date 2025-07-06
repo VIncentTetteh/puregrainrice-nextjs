@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { isAdminUser } from '@/lib/admin'
 import OrderDetailModal from '@/components/OrderDetailModal'
 import { ShippingAddress } from '@/types/ShippingAddress'
+import { Order } from '@/types/Order'
 
 // interface ShippingAddress {
 //   email: string
@@ -35,11 +36,11 @@ interface AdminOrder {
 export default function AdminPage() {
   const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
-  const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [updateLoading, setUpdateLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
@@ -322,7 +323,7 @@ export default function AdminPage() {
                               </div> */}
                               <div>
                                 <p className="text-sm font-medium text-gray-900">
-                                  {item.products.name}
+                                  {item.product_id}
                                 </p>
                                 <p className="text-sm text-gray-500">
                                   Qty: {item.quantity}
@@ -330,7 +331,7 @@ export default function AdminPage() {
                               </div>
                             </div>
                             <div className="text-sm font-medium text-gray-900">
-                              {formatCurrency(item.price * item.quantity)}
+                              {formatCurrency(item.unit_price * item.quantity)}
                             </div>
                           </div>
                         ))}
@@ -414,7 +415,7 @@ export default function AdminPage() {
       {/* Order Detail Modal */}
       {selectedOrder && (
         <OrderDetailModal
-          order={selectedOrder as any}
+          order={selectedOrder as Order}
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false)
