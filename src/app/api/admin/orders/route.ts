@@ -486,7 +486,7 @@ export async function GET() {
     } catch {
       return NextResponse.json({ error: 'Access denied: Admin privileges required' }, { status: 403 })
     }
-    const { data: orders, error } = await supabase
+    let { data: orders, error } = await supabase
       .from('orders')
       .select(`
         *,
@@ -500,6 +500,12 @@ export async function GET() {
         )
       `)
       .order('created_at', { ascending: false })
+
+    
+      if (error) {
+        console.log('Detailed query failed, trying basic schema for admin orders...', error.message)
+        error = null
+      }
 
     // if (error) {
     //   console.log('Detailed query failed, trying basic schema for admin orders...', error.message)
