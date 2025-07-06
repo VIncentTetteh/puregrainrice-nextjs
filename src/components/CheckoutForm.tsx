@@ -45,7 +45,7 @@ interface ValidationErrors {
 declare global {
   interface Window {
     PaystackPop: {
-      setup: (options: any) => {
+      setup: (options: unknown) => {
         openIframe: () => void
       }
     }

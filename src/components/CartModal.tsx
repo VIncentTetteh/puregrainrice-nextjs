@@ -18,22 +18,22 @@ interface PaystackResponse {
   trxref: string;
 }
 
-interface PaystackHandler {
-  openIframe(): void;
-}
+// interface PaystackHandler {
+//   openIframe(): void;
+// }
 
-interface PaystackPop {
-  setup(options: {
-    key: string;
-    email: string;
-    amount: number;
-    currency: string;
-    ref: string;
-    metadata: Record<string, unknown>;
-    callback: (response: PaystackResponse) => void;
-    onClose: () => void;
-  }): PaystackHandler;
-}
+// interface PaystackPop {
+//   setup(options: {
+//     key: string;
+//     email: string;
+//     amount: number;
+//     currency: string;
+//     ref: string;
+//     metadata: Record<string, unknown>;
+//     callback: (response: PaystackResponse) => void;
+//     onClose: () => void;
+//   }): PaystackHandler;
+// }
 
 // declare global {
 //   interface Window {
