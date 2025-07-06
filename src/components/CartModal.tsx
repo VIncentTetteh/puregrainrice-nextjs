@@ -35,11 +35,11 @@ interface PaystackPop {
   }): PaystackHandler;
 }
 
-declare global {
-  interface Window {
-    PaystackPop: PaystackPop;
-  }
-}
+// declare global {
+//   interface Window {
+//     PaystackPop: PaystackPop;
+//   }
+// }
 
 const CartModal = () => {
   const {

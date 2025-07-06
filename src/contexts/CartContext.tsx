@@ -69,7 +69,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           product_id: dbItem.product_id,
           price: dbItem.price,
           quantity: dbItem.quantity,
-          weight_kg: dbItem.product_weight_kg,
+          weight_kg: dbItem.weight_kg,
         }));
       } else if (cart.length > 0) {
         await supabase
@@ -176,7 +176,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           .select('quantity')
           .eq('user_id', user.id)
           .eq('product_id', productId)
-          .single();
+          .maybeSingle();
 
         if (existingItem) {
           // Update existing item by incrementing quantity

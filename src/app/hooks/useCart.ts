@@ -8,12 +8,14 @@ interface CartItem {
   id: string
   product_id: string
   quantity: number
-  products: {
-    id: string
-    name: string
-    price: number
-    image_url: string
-  }
+  price: number
+  weight_kg: string
+  // products: {
+  //   id: string
+  //   name: string
+  //   price: number
+  //   image_url: string
+  // }
 }
 
 export function useCart() {
@@ -28,13 +30,7 @@ export function useCart() {
     const { data, error } = await supabase
       .from('cart_items')
       .select(`
-        *,
-        products (
-          id,
-          name,
-          price,
-          image_url
-        )
+        *
       `)
       .eq('user_id', user.id)
 
@@ -126,7 +122,7 @@ export function useCart() {
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
-      return total + (item.products.price * item.quantity)
+      return total + (item.price * item.quantity)
     }, 0)
   }
 
