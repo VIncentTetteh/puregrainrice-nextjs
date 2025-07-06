@@ -527,7 +527,7 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching orders:', error)
-      return NextResponse.json({ error: 'Failed to fetch orders', details: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
     }
 
     if (orders) {
