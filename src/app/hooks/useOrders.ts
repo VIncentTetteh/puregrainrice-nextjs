@@ -3,40 +3,27 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { ShippingAddress } from '@/types/ShippingAddress'
 
 interface OrderItem {
   id: string
   product_id: string
-  product_name: string
-  product_description?: string
-  product_image_url?: string
-  product_weight_kg?: number
+  product_weight_kg: string
   quantity: number
   unit_price: number
   total_price: number
-  price?: number
-  products?: {
-    name: string
-    image_url: string
-  }
 }
 
-interface ShippingAddress {
-  email?: string
-  user_email?: string
-  fullName?: string
-  user_full_name?: string
-  phone?: string
-  user_phone?: string
-  address?: string
-  delivery_address?: string
-  city?: string
-  delivery_city?: string
-  notes?: string
-  delivery_notes?: string
-  payment_reference?: string
-  [key: string]: unknown
-}
+// interface ShippingAddress {
+//   user_email?: string
+//   user_full_name?: string
+//   user_phone?: string
+//   delivery_address?: string
+//   delivery_city?: string
+//   delivery_notes?: string
+//   payment_reference?: string
+//   [key: string]: unknown
+// }
 
 interface Order {
   id: string
@@ -69,41 +56,30 @@ export function useOrders() {
     let { data, error } = await supabase
       .from('orders')
       .select(`
-        *,
-        order_items (
-          id,
-          product_id,
-          product_name,
-          product_description,
-          product_image_url,
-          product_weight_kg,
-          quantity,
-          unit_price,
-          total_price
-        )
+        *
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.log('New schema failed for fetching, trying old schema...')
-      const oldSchemaResult = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            product_id,
-            quantity,
-            price
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+    // if (error) {
+    //   console.log('New schema failed for fetching, trying old schema...')
+    //   const oldSchemaResult = await supabase
+    //     .from('orders')
+    //     .select(`
+    //       *,
+    //       order_items (
+    //         id,
+    //         product_id,
+    //         quantity,
+    //         price
+    //       )
+    //     `)
+    //     .eq('user_id', user.id)
+    //     .order('created_at', { ascending: false })
         
-      data = oldSchemaResult.data
-      error = oldSchemaResult.error
-    }
+    //   data = oldSchemaResult.data
+    //   error = oldSchemaResult.error
+    // }
 
     if (error) {
       console.error('Error fetching orders (both schemas failed):', error)
@@ -111,12 +87,10 @@ export function useOrders() {
       // Use Order and OrderItem types instead of any
       const ordersWithProductInfo = (data || []).map((order: Order) => ({
         ...order,
-        order_items: order.order_items.map((item: OrderItem) => ({
+        order_items: (order.order_items || []).map((item: OrderItem) => ({
           ...item,
-          price: item.unit_price || item.price, // Handle both schemas
           products: {
-            name: item.product_name || `Product ${item.product_id}`,
-            image_url: item.product_image_url || ''
+            name: item.product_id
           }
         }))
       }))
@@ -137,21 +111,11 @@ export function useOrders() {
   // Specify types for cartItems and shippingAddress
   const createOrder = async (
     cartItems: Array<{
-      product_id?: string
-      id?: string
+      product_id: string
       quantity: number
-      price?: number
-      products?: {
-        price?: number
-        name?: string
-        description?: string
-        image_url?: string
-        image?: string
-        weight_kg?: number
-        sku?: string
-      }
-      name?: string
-      image?: string
+      price: number
+      weight_kg: string
+      
     }>,
     shippingAddress: ShippingAddress
   ) => {
@@ -172,7 +136,7 @@ export function useOrders() {
 
     // Calculate total amount correctly - check if price is in products or at item level
     const totalAmount = cartItems.reduce((total, item) => {
-      const price = item.products?.price || item.price || 0
+      const price = item.price
       return total + (price * item.quantity)
     }, 0)
 
@@ -263,55 +227,22 @@ export function useOrders() {
 
     // Create order items - exclude generated columns
     const newSchemaOrderItems = await Promise.all(cartItems.map(async (item) => {
-      let productId = item.product_id || item.id;
-      const originalIdentifier = productId; // Store the original identifier
+      let productId = item.product_id;
 
       if (!productId) {
         console.error('Missing product_id for item:', item);
         throw new Error('Missing product_id for cart item');
       }
 
-      // Check if productId is a valid UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      
-      if (!uuidRegex.test(productId)) {
-        console.log(`Product ID "${productId}" is not a UUID, looking up in products table...`);
-        
-        // Try to find the actual UUID by searching for the product with this identifier
-        // Since products table doesn't have SKU, we'll search by name only
-        const { data: productData, error: productError } = await supabase
-          .from('products')
-          .select('id, name')
-          .ilike('name', `%${productId}%`)
-          .eq('is_active', true)
-          .limit(1)
-          .single();
-
-        if (productError || !productData) {
-          console.warn(`Could not find product with identifier "${productId}", setting product_id to undefined`);
-          // If we can't find the product, set product_id to undefined (allowed by schema)
-          productId = undefined;
-        } else {
-          productId = productData.id;
-          console.log(`Found product UUID: ${productId} for identifier: ${originalIdentifier}`);
-        }
-      }
-
-      const unitPrice = item.products?.price ?? item.price ?? 0;
-      const productName = item.products?.name ?? item.name ?? 'Unknown Product';
+      const unitPrice = item.price;
+      const totalPrice = unitPrice * item.quantity;
 
       return {
         order_id: createdOrder.id,
-        product_id: productId, // This will be either a valid UUID or null
-        product_name: productName,
-        product_description: item.products?.description || '',
-        product_image_url: item.products?.image_url || item.products?.image || item.image || '',
-        product_weight_kg: item.products?.weight_kg ?? null,
+        product_id: productId,
+        product_weight_kg: item.weight_kg,
         quantity: item.quantity,
         unit_price: unitPrice,
-        sku: item.products?.sku || originalIdentifier || null // Store original identifier in SKU
-        // Removed total_price as it's a generated column
-        // Removed id as it's auto-generated
       };
     }));
 

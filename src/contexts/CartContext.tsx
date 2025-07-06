@@ -5,26 +5,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 
 export interface CartItem {
-  id: string;
-  name: string;
+  product_id: string;
   price: number;
   quantity: number;
-  image?: string;
-  description?: string;
-  weight_kg?: number;
-  // For compatibility with new schema
-  products?: {
-    name: string;
-    price: number;
-    description?: string;
-    image_url?: string;
-    weight_kg?: number;
-  };
+  weight_kg: string;
+  
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (productId: string, productName: string, price: number, image?: string, description?: string, weight_kg?: number) => void;
+  addToCart: (productId: string, price: number, weight_kg: string, quantity: number) => Promise<void>;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, newQuantity: number) => void;
   clearCart: () => void;
@@ -76,11 +66,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       let finalCart = [...cart];
       if (cart.length === 0 && existingItems && existingItems.length > 0) {
         finalCart = existingItems.map(dbItem => ({
-          id: dbItem.product_id,
-          name: dbItem.product_name || 'Product',
-          price: dbItem.price || 0,
+          product_id: dbItem.product_id,
+          price: dbItem.price,
           quantity: dbItem.quantity,
-          image: dbItem.image_url
+          weight_kg: dbItem.product_weight_kg,
         }));
       } else if (cart.length > 0) {
         await supabase
@@ -90,11 +79,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         const cartItemsToInsert = cart.map(item => ({
           user_id: user.id,
-          product_id: item.id,
-          product_name: item.name,
+          product_id: item.product_id,
           price: item.price,
           quantity: item.quantity,
-          image_url: item.image
+          weight_kg: item.weight_kg
         }));
 
         await supabase
@@ -124,11 +112,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       if (cartItems && cartItems.length > 0) {
         const loadedCart = cartItems.map(item => ({
-          id: item.product_id,
-          name: item.product_name || 'Product',
-          price: item.price || 0,
+          product_id: item.product_id,
+          price: item.price,
           quantity: item.quantity,
-          image: item.image_url
+          weight_kg: item.product_weight_kg,
         }));
         setCart(loadedCart);
       }
@@ -160,29 +147,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addToCart = useCallback(async (productId: string, productName: string, price: number, image?: string, description?: string, weight_kg?: number) => {
+  const addToCart = useCallback(async (productId: string, price: number, weight_kg: string, quantity: number) => {
     setCart(prevCart => {
       const newCart = [...prevCart];
-      const existingItem = newCart.find(item => item.id === productId);
+      const existingItem = newCart.find(item => item.product_id === productId);
 
       if (existingItem) {
         existingItem.quantity += 1;
       } else {
         const newItem: CartItem = {
-          id: productId,
-          name: productName,
+          product_id: productId,
           price: price,
-          quantity: 1,
-          image,
-          description,
-          weight_kg,
-          products: {
-            name: productName,
-            price: price,
-            description,
-            image_url: image,
-            weight_kg
-          }
+          quantity: quantity,
+          weight_kg: weight_kg,
         };
         newCart.push(newItem);
       }
@@ -208,6 +185,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             .update({ quantity: existingItem.quantity + 1 })
             .eq('user_id', user.id)
             .eq('product_id', productId);
+            
         } else {
           // Insert new item
           await supabase
@@ -215,10 +193,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             .insert({
               user_id: user.id,
               product_id: productId,
-              product_name: productName,
               price: price,
-              quantity: 1,
-              image_url: image
+              quantity: quantity,
+              weight_kg: weight_kg
             });
         }
       } catch (error) {
@@ -228,7 +205,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [user, supabase]);
 
   const removeFromCart = useCallback(async (productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    setCart(prevCart => prevCart.filter(item => item.product_id !== productId));
 
     // If user is logged in, also remove from Supabase
     if (user) {
@@ -252,7 +229,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     
     setCart(prevCart =>
       prevCart.map(item =>
-        item.id === productId
+        item.product_id === productId
           ? { ...item, quantity: newQuantity }
           : item
       )

@@ -6,13 +6,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { isAdminUser } from '@/lib/admin'
 import OrderDetailModal from '@/components/OrderDetailModal'
+import { ShippingAddress } from '@/types/ShippingAddress'
 
-interface ShippingAddress {
-  email: string
-  [key: string]: string | undefined // Add more fields as needed, or specify them explicitly
-}
+// interface ShippingAddress {
+//   email: string
+//   [key: string]: string | unknown // Add more fields as needed, or specify them explicitly
+// }
 
-interface Order {
+interface AdminOrder {
   id: string
   total_amount: number
   status: string
@@ -26,7 +27,7 @@ interface Order {
     price: number
     products: {
       name: string
-      image_url: string
+      // image_url?: string
     }
   }[]
 }
@@ -34,11 +35,11 @@ interface Order {
 export default function AdminPage() {
   const { user, loading: authLoading, signOut } = useAuth()
   const router = useRouter()
-  const [orders, setOrders] = useState<Order[]>([])
+  const [orders, setOrders] = useState<AdminOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [updateLoading, setUpdateLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
@@ -340,7 +341,7 @@ export default function AdminPage() {
                     {order.shipping_address && (
                       <div className="border-t border-gray-200 pt-4 mb-4">
                         <h4 className="text-sm font-medium text-gray-900 mb-2">Customer</h4>
-                        <p className="text-sm text-gray-600">{order.shipping_address.email}</p>
+                        <p className="text-sm text-gray-600">{order.shipping_address.user_email}</p>
                       </div>
                     )}
 
@@ -413,7 +414,7 @@ export default function AdminPage() {
       {/* Order Detail Modal */}
       {selectedOrder && (
         <OrderDetailModal
-          order={selectedOrder}
+          order={selectedOrder as any}
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false)

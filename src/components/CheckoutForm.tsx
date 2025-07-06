@@ -147,42 +147,33 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
     try {
       // Prepare order items with proper structure for new schema
       const orderItems = cart.map(item => ({
-        id: item.id, // Cart item ID (will be used as product_id)
-        product_id: item.id, // Use id as product_id since CartContext uses id field
+        id: item.product_id, // Cart item ID (will be used as product_id)
+        product_id: item.product_id, // Use product_id as the unique identifier
         quantity: item.quantity,
         price: item.price, // Add price at item level
-        name: item.name, // Add name at item level
-        image: item.image, // Add image at item level
-        description: item.description, // Add description if available
-        weight_kg: item.weight_kg, // Add weight if available
-        products: {
-          name: item.name,
-          price: item.price,
-          description: item.description,
-          image_url: item.image || '',
-          weight_kg: item.weight_kg
-        }
+        weight_kg: item.weight_kg // Add weight if available
+        // products: {
+        //   weight_kg: item.weight_kg
+        // }
       }))
 
       const orderData = {
-        // Map to new schema field names
-        email: deliveryDetails.email,
         fullName: deliveryDetails.fullName, 
         phone: deliveryDetails.phone,
         address: deliveryDetails.deliveryAddress,
         city: deliveryDetails.deliveryCity,
         notes: deliveryDetails.deliveryNotes,
         payment_reference: paymentResponse.reference,
-        // Also include with new schema field names for useOrders
         user_email: deliveryDetails.email,
         user_full_name: deliveryDetails.fullName,
         user_phone: deliveryDetails.phone,
         delivery_address: deliveryDetails.deliveryAddress,
         delivery_city: deliveryDetails.deliveryCity,
         delivery_notes: deliveryDetails.deliveryNotes,
+        payment_status: paymentResponse.status,
         // Legacy field for backward compatibility
         shipping_address: {
-          email: deliveryDetails.email,
+          user_email: deliveryDetails.email,
           fullName: deliveryDetails.fullName,
           phone: deliveryDetails.phone,
           whatsappNumber: deliveryDetails.whatsappNumber,
@@ -397,8 +388,8 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
           <div className="space-y-2">
             {cart.map(item => (
-              <div key={item.id} className="flex justify-between text-sm">
-                <span>{item.name} × {item.quantity}</span>
+              <div key={item.product_id} className="flex justify-between text-sm">
+                <span>{item.weight_kg} × {item.quantity}</span>
                 <span>GH₵{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}

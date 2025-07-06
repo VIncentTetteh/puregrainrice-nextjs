@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 import CartModal from '@/components/CartModal'
+import Head from 'next/head';
 
 
 
@@ -73,19 +74,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.className}>
-      <body>
-        {/* <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" /> */}
+      <head>
         <link
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
           rel="stylesheet"
         />
-        {/* <Script src="https://unpkg.com/framer-motion@10/dist/framer-motion.js" strategy="afterInteractive" /> */}
-
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
-
+      </head>
+      <body>
         <Toaster
           position="top-right"
           toastOptions={{

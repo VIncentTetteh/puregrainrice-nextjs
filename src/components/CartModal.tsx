@@ -99,7 +99,7 @@ const CartModal = () => {
         custom_fields: [{
           display_name: "Cart Items",
           variable_name: "cart_items",
-          value: cart.map(item => `${item.name} (${item.quantity})`).join(', ')
+          value: cart.map(item => `${item.weight_kg} (${item.quantity})`).join(', ')
         }],
         customer_email: customerEmail,
         order_total: totalAmount,
@@ -110,21 +110,10 @@ const CartModal = () => {
           setIsProcessingOrder(true);
           try {
             const orderItems = cart.map(item => ({
-              id: item.id,
-              product_id: item.id,
+              product_id: item.product_id,
               quantity: item.quantity,
-              price: item.price, // Add price at item level
-              name: item.name,
-              image: item.image,
-              description: item.description,
-              weight_kg: item.weight_kg,
-              products: {
-                name: item.name,
-                price: item.price,
-                description: item.description,
-                image_url: item.image || '',
-                weight_kg: item.weight_kg
-              }
+              price: item.price, // <-- use 'price' not 'unit_price'
+              weight_kg: item.weight_kg // <-- use 'weight_kg' not 'product_weight_kg'
             }))
 
             const shippingAddress = {
@@ -204,27 +193,27 @@ const CartModal = () => {
                 </div>
               ) : (
                 cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                  <div key={item.product_id || ""} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">{item.name}</h4>
+                      <h4 className="font-semibold text-gray-800">{item.weight_kg}</h4>
                       <p className="text-rice-gold font-bold">₵{item.price}</p>
                     </div>
                     <div className="flex items-center space-x-3">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
                         className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
                       >
                         <i className="fas fa-minus text-sm"></i>
                       </button>
                       <span className="w-8 text-center font-semibold">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
                         className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
                       >
                         <i className="fas fa-plus text-sm"></i>
                       </button>
                       <button
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item.product_id)}
                         className="ml-4 text-red-500 hover:text-red-700"
                       >
                         <i className="fas fa-trash"></i>

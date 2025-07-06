@@ -58,8 +58,8 @@ const Shop = () => {
   ];
 
   const handleAddToCart = async (product: Product) => {
-    await addToCart(product.id, product.name, product.price, product.image);
-    
+    await addToCart(product.id, product.price, product.weight, 1); // Default quantity to 1
+
     // Show success message
     toast.success(`${product.name} added to cart!`);
     

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 
 interface ShippingAddress {
-  email?: string
+  user_email?: string
   phone?: string
   whatsappNumber?: string
   address?: string
@@ -23,11 +23,9 @@ interface Order {
   order_items: {
     id: string
     quantity: number
-    price: number
-    products: {
-      name: string
-      image_url: string
-    }
+    unit_price: number
+    product_id: string
+    product_weight_kg: string
   }[]
 }
 
@@ -126,23 +124,15 @@ export default function OrderDetailModal({
                 <div className="space-y-4">
                   {order.order_items.map((item) => (
                     <div key={item.id} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
-                      <div className="flex-shrink-0">
-                        <Image
-                          className="h-16 w-16 rounded-lg object-cover"
-                          src={item.products.image_url || '/placeholder-product.jpg'}
-                          alt={item.products.name}
-                          width={64}
-                          height={64}
-                        />
-                      </div>
+                      
                       <div className="flex-1">
-                        <h5 className="text-sm font-medium text-gray-900">{item.products.name}</h5>
+                        <h5 className="text-sm font-medium text-gray-900">{item.product_id}</h5>
                         <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                        <p className="text-sm text-gray-500">Unit Price: {formatCurrency(item.price)}</p>
+                        <p className="text-sm text-gray-500">Unit Price: {formatCurrency(item.unit_price)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-medium text-gray-900">
-                          {formatCurrency(item.price * item.quantity)}
+                          {formatCurrency(item.unit_price * item.quantity)}
                         </p>
                       </div>
                     </div>
@@ -174,10 +164,10 @@ export default function OrderDetailModal({
                         <div className="flex items-center justify-between">
                           <p className="text-sm">
                             <span className="font-medium text-gray-900">Email:</span>{' '}
-                            <span className="text-gray-700">{order.shipping_address.email}</span>
+                            <span className="text-gray-700">{order.shipping_address.user_email}</span>
                           </p>
                           <a
-                            href={`mailto:${order.shipping_address.email}`}
+                            href={`mailto:${order.shipping_address.user_email}`}
                             className="text-blue-600 hover:text-blue-700 text-sm"
                           >
                             <i className="fas fa-envelope"></i>
@@ -243,7 +233,7 @@ export default function OrderDetailModal({
                       <div className="mt-4 pt-3 border-t border-gray-200">
                         <div className="flex space-x-2">
                           <a
-                            href={`mailto:${order.shipping_address.email}?subject=Order Update - ${order.id.slice(-8)}`}
+                            href={`mailto:${order.shipping_address.user_email}?subject=Order Update - ${order.id.slice(-8)}`}
                             className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                           >
                             <i className="fas fa-envelope mr-2"></i>

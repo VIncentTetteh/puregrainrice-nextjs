@@ -4,30 +4,23 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import { Resend } from 'resend';
+import { ShippingAddress } from '@/types/ShippingAddress';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
-interface ShippingAddress {
-  email: string
-  full_name?: string
-  phone?: string
-}
+// interface ShippingAddress {
+//   email: string
+//   full_name?: string
+//   phone?: string
+// }
 
 interface OrderItem {
-  id: string
   product_id: string
-  product_name?: string
-  product_description?: string
-  product_image_url?: string
-  product_weight_kg?: number
+  product_weight_kg: string
   quantity: number
-  price?: number
-  unit_price?: number
-  total_price?: number
-  products?: {
-    name: string
-    image_url: string
-  }
+  unit_price: number
+  total_price: number
+  
 }
 
 interface Order {
@@ -119,7 +112,7 @@ const createOrderStatusEmail = (
   
   // Calculate order summary
   const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = orderItems.reduce((sum, item) => sum + (item.total_price || item.price || 0), 0);
+  const totalAmount = orderItems.reduce((sum, item) => sum + (item.total_price || item.unit_price || 0), 0);
   
   return {
     html: `
@@ -415,12 +408,9 @@ const createOrderStatusEmail = (
                     <h3>Order Items</h3>
                     ${orderItems.map(item => `
                         <div class="item">
-                            ${item.product_image_url || item.products?.image_url ? 
-                                `<img src="${item.product_image_url || item.products?.image_url}" alt="${item.product_name || item.products?.name || 'Product'}" class="item-image">` : 
-                                '<div class="item-image"></div>'
-                            }
+                  
                             <div class="item-details">
-                                <div class="item-name">${item.product_name || item.products?.name || `Product ${item.product_id}`}</div>
+                                <div class="item-name">${item.product_id}</div>
                                 <div class="item-quantity">Quantity: ${item.quantity}</div>
                             </div>
                         </div>
@@ -473,7 +463,7 @@ ${trackingNumber ? `- Tracking Number: ${trackingNumber}` : ''}
 
 ${orderItems.length > 0 ? `
 Order Items:
-${orderItems.map(item => `- ${item.product_name || item.products?.name || `Product ${item.product_id}`} (Qty: ${item.quantity})`).join('\n')}
+${orderItems.map(item => `- ${item.product_id} (Qty: ${item.quantity})`).join('\n')}
 ` : ''}
 
 Need assistance? Contact us at ${supportEmail}
@@ -503,35 +493,31 @@ export async function GET() {
         order_items (
           id,
           product_id,
-          product_name,
-          product_description,
-          product_image_url,
           product_weight_kg,
           quantity,
-          price,
           unit_price,
           total_price
         )
       `)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.log('Detailed query failed, trying basic schema for admin orders...', error.message)
-      const basicResult = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            product_id,
-            quantity,
-            price
-          )
-        `)
-        .order('created_at', { ascending: false })
-      orders = basicResult.data
-      error = basicResult.error
-    }
+    // if (error) {
+    //   console.log('Detailed query failed, trying basic schema for admin orders...', error.message)
+    //   const basicResult = await supabase
+    //     .from('orders')
+    //     .select(`
+    //       *,
+    //       order_items (
+    //         id,
+    //         product_id,
+    //         quantity,
+    //         price
+    //       )
+    //     `)
+    //     .order('created_at', { ascending: false })
+    //   orders = basicResult.data
+    //   error = basicResult.error
+    // }
 
     if (error) {
       console.error('Error fetching orders:', error)
@@ -548,10 +534,9 @@ export async function GET() {
         },
         order_items: (order.order_items || []).map((item: OrderItem) => ({
           ...item,
-          price: item.unit_price || item.price || 0,
+          price: item.unit_price,
           products: {
-            name: item.product_name || `Product ${item.product_id}`,
-            image_url: item.product_image_url || ''
+            name: item.product_id
           }
         }))
       }))
@@ -589,24 +574,16 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Fetch order with items for email
-    const { data: orderWithItems, error: fetchError } = await supabase
+    const { error: fetchError } = await supabase
       .from('orders')
       .select(`
         *,
         order_items (
           id,
           product_id,
-          product_name,
-          product_description,
-          product_image_url,
           quantity,
-          price,
           unit_price,
           total_price,
-          products (
-            name,
-            image_url
-          )
         )
       `)
       .eq('id', orderId)
@@ -650,9 +627,8 @@ export async function PATCH(request: NextRequest) {
           orderId,
           status,
           orderDate,
-          process.env.SUPPORT_EMAIL || 'support@yourstore.com',
+          process.env.EMAIL_TO || 'info@pureplatterfoods.com',
           trackingNumber || null,
-          orderWithItems?.order_items || []
         )
 
         await resend.emails.send({
