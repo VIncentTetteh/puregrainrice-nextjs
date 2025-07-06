@@ -157,9 +157,9 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
     })
 
     // Additional cross-field validation
-    if (deliveryDetails.whatsappNumber && deliveryDetails.whatsappNumber === deliveryDetails.phone) {
-      newErrors.whatsappNumber = 'WhatsApp number should be different from phone number or left empty'
-    }
+    // if (deliveryDetails.whatsappNumber && deliveryDetails.whatsappNumber === deliveryDetails.phone) {
+    //   newErrors.whatsappNumber = 'WhatsApp number should be different from phone number or left empty'
+    // }
 
     // Cart validation
     if (!cart || cart.length === 0) {
