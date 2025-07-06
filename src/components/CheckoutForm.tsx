@@ -32,11 +32,53 @@ interface CheckoutFormProps {
   onOrderSuccess?: () => void
 }
 
+interface ValidationErrors {
+  fullName?: string
+  phone?: string
+  whatsappNumber?: string
+  email?: string
+  deliveryAddress?: string
+  deliveryCity?: string
+  deliveryNotes?: string
+}
+
 const GHANA_CITIES = [
   'Accra', 'Kumasi', 'Tamale', 'Cape Coast', 'Sekondi-Takoradi', 'Sunyani',
   'Koforidua', 'Ho', 'Wa', 'Bolgatanga', 'Tarkwa', 'Techiman', 'Obuasi',
   'Tema', 'Madina', 'Kasoa', 'Ashaiman', 'Aflao', 'Berekum', 'Akim Oda'
 ]
+
+// Validation utility functions
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+const validatePhoneNumber = (phone: string): boolean => {
+  // Remove all spaces and special characters except +
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+  
+  // Ghana phone number patterns
+  const ghanaPatterns = [
+    /^\+233[0-9]{9}$/, // +233 followed by 9 digits
+    /^0[0-9]{9}$/, // 0 followed by 9 digits
+    /^233[0-9]{9}$/ // 233 followed by 9 digits
+  ]
+  
+  return ghanaPatterns.some(pattern => pattern.test(cleanPhone))
+}
+
+const validateFullName = (name: string): boolean => {
+  // At least 2 characters, contains at least one space, only letters and spaces
+  const nameRegex = /^[a-zA-Z\s]{2,}$/
+  return nameRegex.test(name.trim()) && name.trim().includes(' ')
+}
+
+const validateAddress = (address: string): boolean => {
+  // At least 10 characters and contains some basic address components
+  const trimmedAddress = address.trim()
+  return trimmedAddress.length >= 10 && /[0-9]/.test(trimmedAddress)
+}
 
 export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormProps) {
   const { user } = useAuth()
@@ -55,49 +97,127 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
   })
 
   const [isProcessing, setIsProcessing] = useState(false)
-  const [errors, setErrors] = useState<Partial<DeliveryDetails>>({})
+  const [errors, setErrors] = useState<ValidationErrors>({})
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
 
+  // Real-time validation function
+  const validateField = (field: keyof DeliveryDetails, value: string): string | undefined => {
+    switch (field) {
+      case 'fullName':
+        if (!value.trim()) return 'Full name is required'
+        if (value.trim().length < 2) return 'Full name must be at least 2 characters'
+        if (!validateFullName(value)) return 'Please enter your full name (first and last name)'
+        break
+
+      case 'email':
+        if (!value.trim()) return 'Email address is required'
+        if (!validateEmail(value)) return 'Please enter a valid email address'
+        break
+
+      case 'phone':
+        if (!value.trim()) return 'Phone number is required'
+        if (!validatePhoneNumber(value)) return 'Please enter a valid Ghana phone number (e.g., +233 24 123 4567 or 024 123 4567)'
+        break
+
+      case 'whatsappNumber':
+        if (value.trim() && !validatePhoneNumber(value)) {
+          return 'Please enter a valid WhatsApp number'
+        }
+        break
+
+      case 'deliveryAddress':
+        if (!value.trim()) return 'Delivery address is required'
+        if (value.trim().length < 10) return 'Please provide a more detailed address'
+        if (!validateAddress(value)) return 'Please include house number or street details'
+        break
+
+      case 'deliveryCity':
+        if (!value.trim()) return 'Delivery city is required'
+        if (!GHANA_CITIES.includes(value)) return 'Please select a valid city'
+        break
+
+      case 'deliveryNotes':
+        if (value.length > 500) return 'Delivery notes cannot exceed 500 characters'
+        break
+    }
+    return undefined
+  }
+
+  // Comprehensive form validation
   const validateForm = (): boolean => {
-    const newErrors: Partial<DeliveryDetails> = {}
+    const newErrors: ValidationErrors = {}
 
-    if (!deliveryDetails.fullName.trim()) {
-      newErrors.fullName = 'Full name is required'
+    // Validate all required fields
+    Object.keys(deliveryDetails).forEach(key => {
+      const field = key as keyof DeliveryDetails
+      const error = validateField(field, deliveryDetails[field])
+      if (error) {
+        newErrors[field] = error
+      }
+    })
+
+    // Additional cross-field validation
+    if (deliveryDetails.whatsappNumber && deliveryDetails.whatsappNumber === deliveryDetails.phone) {
+      newErrors.whatsappNumber = 'WhatsApp number should be different from phone number or left empty'
     }
 
-    if (!deliveryDetails.phone.trim()) {
-      newErrors.phone = 'Phone number is required'
-    } else if (!/^\+?[0-9]{10,15}$/.test(deliveryDetails.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number'
+    // Cart validation
+    if (!cart || cart.length === 0) {
+      toast.error('Your cart is empty. Please add items before checkout.')
+      return false
     }
 
-    if (!deliveryDetails.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(deliveryDetails.email)) {
-      newErrors.email = 'Please enter a valid email'
-    }
-
-    if (!deliveryDetails.deliveryAddress.trim()) {
-      newErrors.deliveryAddress = 'Delivery address is required'
-    }
-
-    if (!deliveryDetails.deliveryCity.trim()) {
-      newErrors.deliveryCity = 'Delivery city is required'
+    // Total amount validation
+    if (totalAmount <= 0) {
+      toast.error('Invalid order total. Please check your cart.')
+      return false
     }
 
     setErrors(newErrors)
+    
+    // Mark all fields as touched to show errors
+    const allTouched = Object.keys(deliveryDetails).reduce((acc, key) => {
+      acc[key] = true
+      return acc
+    }, {} as Record<string, boolean>)
+    setTouched(allTouched)
+
     return Object.keys(newErrors).length === 0
   }
 
   const handleInputChange = (field: keyof DeliveryDetails, value: string) => {
     setDeliveryDetails(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
+    
+    // Real-time validation
+    if (touched[field]) {
+      const error = validateField(field, value)
+      setErrors(prev => ({ ...prev, [field]: error }))
     }
+  }
+
+  const handleBlur = (field: keyof DeliveryDetails) => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+    const error = validateField(field, deliveryDetails[field])
+    setErrors(prev => ({ ...prev, [field]: error }))
   }
 
   const handlePayment = () => {
     if (!validateForm()) {
-      toast.error('Please fill in all required fields correctly')
+      // Count and show specific error messages
+      const errorCount = Object.keys(errors).length
+      const errorMessages = Object.values(errors).filter(Boolean)
+      
+      if (errorCount === 1) {
+        toast.error(`Please fix the following error: ${errorMessages[0]}`)
+      } else if (errorCount > 1) {
+        toast.error(`Please fix ${errorCount} errors in the form`)
+      }
+      
+      // Scroll to first error
+      const firstErrorField = Object.keys(errors)[0]
+      const element = document.querySelector(`[name="${firstErrorField}"]`)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      
       return
     }
 
@@ -147,14 +267,11 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
     try {
       // Prepare order items with proper structure for new schema
       const orderItems = cart.map(item => ({
-        id: item.product_id, // Cart item ID (will be used as product_id)
-        product_id: item.product_id, // Use product_id as the unique identifier
+        id: item.product_id,
+        product_id: item.product_id,
         quantity: item.quantity,
-        price: item.price, // Add price at item level
-        weight_kg: item.weight_kg // Add weight if available
-        // products: {
-        //   weight_kg: item.weight_kg
-        // }
+        price: item.price,
+        weight_kg: item.weight_kg
       }))
 
       const orderData = {
@@ -171,7 +288,6 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
         delivery_city: deliveryDetails.deliveryCity,
         delivery_notes: deliveryDetails.deliveryNotes,
         payment_status: paymentResponse.status,
-        // Legacy field for backward compatibility
         shipping_address: {
           user_email: deliveryDetails.email,
           fullName: deliveryDetails.fullName,
@@ -189,30 +305,25 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
         console.log('Order created successfully:', order)
         toast.success(`🎉 Order placed successfully! Order #${order.id.slice(-8)}`)
         
-        // Clear cart
         clearCartOnOrderSuccess()
         
-        // Generate delivery confirmation code
         try {
           await generateDeliveryCode(order.id)
         } catch (error) {
           console.error('Error generating delivery code:', error)
         }
         
-        // Notify admin via backend API
         fetch('/api/notify-admin-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(order),
         });
 
-        // Close all modals first
         if (onOrderSuccess) {
           onOrderSuccess()
         }
         setIsCartOpen(false)
         
-        // Navigate to dashboard with a longer delay to ensure everything is properly closed
         setTimeout(() => {
           console.log('Navigating to dashboard...')
           router.push('/dashboard')
@@ -241,182 +352,256 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
     }
   }
 
+  // Helper function to get input style classes
+  const getInputClasses = (field: keyof DeliveryDetails) => {
+    const baseClasses = "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors"
+    const hasError = errors[field]
+    const isTouched = touched[field]
+    
+    if (hasError && isTouched) {
+      return `${baseClasses} border-red-500 focus:ring-red-500 bg-red-50`
+    } else if (isTouched && !hasError && deliveryDetails[field]) {
+      return `${baseClasses} border-green-500 focus:ring-green-500 bg-green-50`
+    } else {
+      return `${baseClasses} border-gray-300 focus:ring-blue-500`
+    }
+  }
+
   return (
     <>
-    <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Delivery Details</h2>
-        <button
-          onClick={onBack}
-          className="text-gray-500 hover:text-gray-700 flex items-center"
-        >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Cart
-        </button>
+      <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Delivery Details</h2>
+          <button
+            onClick={onBack}
+            className="text-gray-500 hover:text-gray-700 flex items-center"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Cart
+          </button>
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }} className="space-y-6">
+          {/* Personal Information */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={deliveryDetails.fullName}
+                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  onBlur={() => handleBlur('fullName')}
+                  className={getInputClasses('fullName')}
+                  placeholder="Enter your full name (first and last name)"
+                />
+                {errors.fullName && touched.fullName && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.fullName}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={deliveryDetails.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onBlur={() => handleBlur('email')}
+                  className={getInputClasses('email')}
+                  placeholder="Enter your email address"
+                />
+                {errors.email && touched.email && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.email}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={deliveryDetails.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onBlur={() => handleBlur('phone')}
+                  className={getInputClasses('phone')}
+                  placeholder="e.g., +233 24 123 4567 or 024 123 4567"
+                />
+                {errors.phone && touched.phone && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.phone}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  WhatsApp Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  name="whatsappNumber"
+                  value={deliveryDetails.whatsappNumber}
+                  onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
+                  onBlur={() => handleBlur('whatsappNumber')}
+                  className={getInputClasses('whatsappNumber')}
+                  placeholder="e.g., +233 24 123 4567"
+                />
+                {errors.whatsappNumber && touched.whatsappNumber && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.whatsappNumber}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">For order updates via WhatsApp</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Delivery Information */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Delivery Information</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Delivery Address *
+                </label>
+                <textarea
+                  name="deliveryAddress"
+                  value={deliveryDetails.deliveryAddress}
+                  onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
+                  onBlur={() => handleBlur('deliveryAddress')}
+                  rows={3}
+                  className={getInputClasses('deliveryAddress')}
+                  placeholder="Enter your complete delivery address (house number, street, area, landmarks)"
+                />
+                {errors.deliveryAddress && touched.deliveryAddress && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.deliveryAddress}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Delivery City *
+                </label>
+                <select
+                  name="deliveryCity"
+                  value={deliveryDetails.deliveryCity}
+                  onChange={(e) => handleInputChange('deliveryCity', e.target.value)}
+                  onBlur={() => handleBlur('deliveryCity')}
+                  className={getInputClasses('deliveryCity')}
+                >
+                  <option value="">Select your city</option>
+                  {GHANA_CITIES.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                {errors.deliveryCity && touched.deliveryCity && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.deliveryCity}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Delivery Notes (Optional)
+                  <span className="text-gray-500 text-xs ml-1">
+                    ({deliveryDetails.deliveryNotes.length}/500)
+                  </span>
+                </label>
+                <textarea
+                  name="deliveryNotes"
+                  value={deliveryDetails.deliveryNotes}
+                  onChange={(e) => handleInputChange('deliveryNotes', e.target.value)}
+                  onBlur={() => handleBlur('deliveryNotes')}
+                  rows={2}
+                  className={getInputClasses('deliveryNotes')}
+                  placeholder="Any special instructions for delivery (e.g., gate code, best time to deliver)"
+                  maxLength={500}
+                />
+                {errors.deliveryNotes && touched.deliveryNotes && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.deliveryNotes}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Order Summary */}
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
+            <div className="space-y-2">
+              {cart.map(item => (
+                <div key={item.product_id} className="flex justify-between text-sm">
+                  <span>{item.weight_kg} × {item.quantity}</span>
+                  <span>GH₵{(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="border-t pt-2 mt-2">
+                <div className="flex justify-between font-semibold text-lg">
+                  <span>Total:</span>
+                  <span>GH₵{totalAmount.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Button */}
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-md font-semibold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isProcessing ? 'Processing...' : `Pay GH₵${totalAmount.toFixed(2)}`}
+          </button>
+
+          <p className="text-xs text-gray-500 text-center">
+            By placing this order, you agree to our terms and conditions. 
+            You will receive an order confirmation email and delivery tracking information.
+          </p>
+        </form>
       </div>
-
-      <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }} className="space-y-6">
-        {/* Personal Information */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={deliveryDetails.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.fullName ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your full name"
-              />
-              {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                value={deliveryDetails.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your email"
-              />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={deliveryDetails.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.phone ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., +233 24 123 4567"
-              />
-              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                WhatsApp Number (Optional)
-              </label>
-              <input
-                type="tel"
-                value={deliveryDetails.whatsappNumber}
-                onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., +233 24 123 4567"
-              />
-              <p className="text-xs text-gray-500 mt-1">For order updates via WhatsApp</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Delivery Information */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Delivery Information</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delivery Address *
-              </label>
-              <textarea
-                value={deliveryDetails.deliveryAddress}
-                onChange={(e) => handleInputChange('deliveryAddress', e.target.value)}
-                rows={3}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.deliveryAddress ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your complete delivery address (house number, street, area, landmarks)"
-              />
-              {errors.deliveryAddress && <p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delivery City *
-              </label>
-              <select
-                value={deliveryDetails.deliveryCity}
-                onChange={(e) => handleInputChange('deliveryCity', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.deliveryCity ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select your city</option>
-                {GHANA_CITIES.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-              {errors.deliveryCity && <p className="text-red-500 text-sm mt-1">{errors.deliveryCity}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delivery Notes (Optional)
-              </label>
-              <textarea
-                value={deliveryDetails.deliveryNotes}
-                onChange={(e) => handleInputChange('deliveryNotes', e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Any special instructions for delivery (e.g., gate code, best time to deliver)"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
-          <div className="space-y-2">
-            {cart.map(item => (
-              <div key={item.product_id} className="flex justify-between text-sm">
-                <span>{item.weight_kg} × {item.quantity}</span>
-                <span>GH₵{(item.price * item.quantity).toFixed(2)}</span>
-              </div>
-            ))}
-            <div className="border-t pt-2 mt-2">
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Total:</span>
-                <span>GH₵{totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Button */}
-        <button
-          type="submit"
-          disabled={isProcessing}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-md font-semibold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isProcessing ? 'Processing...' : `Pay GH₵${totalAmount.toFixed(2)}`}
-        </button>
-
-        <p className="text-xs text-gray-500 text-center">
-          By placing this order, you agree to our terms and conditions. 
-          You will receive an order confirmation email and delivery tracking information.
-        </p>
-      </form>
-    </div>
     </>
   )
 }

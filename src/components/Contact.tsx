@@ -3,9 +3,25 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}
+
+interface FormErrors {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  message?: string;
+}
 
 const Contact = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     email: '',
@@ -13,7 +29,69 @@ const Contact = () => {
     subject: 'General Inquiry',
     message: ''
   });
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation functions
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    // Allow various phone formats including international
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    return cleanPhone.length >= 10 && phoneRegex.test(cleanPhone);
+  };
+
+  const validateName = (name: string): boolean => {
+    return name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name.trim());
+  };
+
+  const validateMessage = (message: string): boolean => {
+    return message.trim().length >= 10 && message.trim().length <= 1000;
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    // First Name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    } else if (!validateName(formData.firstName)) {
+      newErrors.firstName = 'First name must be at least 2 characters and contain only letters';
+    }
+
+    // Last Name validation
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    } else if (!validateName(formData.lastName)) {
+      newErrors.lastName = 'Last name must be at least 2 characters and contain only letters';
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Phone validation (optional but validate if provided)
+    if (formData.phone.trim() && !validatePhone(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number (minimum 10 digits)';
+    }
+
+    // Message validation
+    if (!formData.message.trim()) {
+      newErrors.message = 'Message is required';
+    } else if (!validateMessage(formData.message)) {
+      newErrors.message = 'Message must be between 10 and 1000 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -21,10 +99,24 @@ const Contact = () => {
       ...prev,
       [name]: value
     }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the validation errors before submitting');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -48,6 +140,7 @@ const Contact = () => {
           subject: 'General Inquiry',
           message: ''
         });
+        setErrors({});
       } else {
         throw new Error(result.error || 'Failed to send message');
       }
@@ -124,50 +217,82 @@ const Contact = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">First Name</label>
+                  <label className="block text-sm font-medium mb-2">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
                   <input 
                     type="text" 
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-rice-gold transition duration-300 text-white"
+                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
+                      errors.firstName 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : 'border-gray-700 focus:border-rice-gold'
+                    }`}
                   />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Last Name</label>
+                  <label className="block text-sm font-medium mb-2">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
                   <input 
                     type="text" 
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-rice-gold transition duration-300 text-white"
+                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
+                      errors.lastName 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : 'border-gray-700 focus:border-rice-gold'
+                    }`}
                   />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
+                  )}
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
+                <label className="block text-sm font-medium mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
                 <input 
                   type="email" 
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-rice-gold transition duration-300 text-white"
+                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
+                    errors.email 
+                      ? 'border-red-500 focus:border-red-500' 
+                      : 'border-gray-700 focus:border-rice-gold'
+                  }`}
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Phone</label>
+                <label className="block text-sm font-medium mb-2">Phone (Optional)</label>
                 <input 
                   type="tel" 
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-rice-gold transition duration-300 text-white"
+                  placeholder="+233 54 288 0528"
+                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
+                    errors.phone 
+                      ? 'border-red-500 focus:border-red-500' 
+                      : 'border-gray-700 focus:border-rice-gold'
+                  }`}
                 />
+                {errors.phone && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                )}
               </div>
               
               <div>
@@ -187,15 +312,27 @@ const Contact = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Message</label>
+                <label className="block text-sm font-medium mb-2">
+                  Message <span className="text-red-500">*</span>
+                  <span className="text-gray-400 text-xs ml-2">
+                    ({formData.message.length}/1000 characters)
+                  </span>
+                </label>
                 <textarea 
                   rows={6} 
                   name="message"
                   value={formData.message}
                   onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-rice-gold transition duration-300 resize-none text-white"
+                  placeholder="Please provide details about your inquiry..."
+                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 resize-none text-white ${
+                    errors.message 
+                      ? 'border-red-500 focus:border-red-500' 
+                      : 'border-gray-700 focus:border-rice-gold'
+                  }`}
                 ></textarea>
+                {errors.message && (
+                  <p className="text-red-500 text-sm mt-1">{errors.message}</p>
+                )}
               </div>
               
               <button 

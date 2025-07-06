@@ -726,7 +726,7 @@ export async function POST(req: Request) {
     // Send admin notification email
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
-      to: process.env.ADMIN_EMAIL || process.env.EMAIL_FROM!,
+      to: process.env.EMAIL_FROM!,
       subject: `🔔 New Contact: ${subject}`,
       replyTo: email,
       html: adminEmail.html,
