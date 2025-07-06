@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { isAdminUser } from '@/lib/admin'
 import OrderDetailModal from '@/components/OrderDetailModal'
-import { ShippingAddress } from '@/types/ShippingAddress'
+// import { ShippingAddress } from '@/types/ShippingAddress'
 import { Order } from '@/types/Order'
 
 // interface ShippingAddress {
@@ -14,24 +14,24 @@ import { Order } from '@/types/Order'
 //   [key: string]: string | unknown // Add more fields as needed, or specify them explicitly
 // }
 
-interface AdminOrder {
-  id: string
-  total_amount: number
-  status: string
-  created_at: string
-  shipping_address: ShippingAddress
-  payment_reference: string
-  admin_notes?: string
-  order_items: {
-    id: string
-    quantity: number
-    price: number
-    products: {
-      name: string
-      // image_url?: string
-    }
-  }[]
-}
+// interface AdminOrder {
+//   id: string
+//   total_amount: number
+//   status: string
+//   created_at: string
+//   shipping_address: ShippingAddress
+//   payment_reference: string
+//   admin_notes?: string
+//   order_items: {
+//     id: string
+//     quantity: number
+//     price: number
+//     products: {
+//       name: string
+//       // image_url?: string
+//     }
+//   }[]
+// }
 
 export default function AdminPage() {
   const { user, loading: authLoading, signOut } = useAuth()

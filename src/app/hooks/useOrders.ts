@@ -53,7 +53,7 @@ export function useOrders() {
   const fetchOrders = useCallback(async () => {
     if (!user) return
 
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select(`
         *,
@@ -235,7 +235,7 @@ export function useOrders() {
 
     // Create order items - exclude generated columns
     const newSchemaOrderItems = await Promise.all(cartItems.map(async (item) => {
-      let productId = item.product_id;
+      const productId = item.product_id;
 
       if (!productId) {
         console.error('Missing product_id for item:', item);
@@ -243,7 +243,7 @@ export function useOrders() {
       }
 
       const unitPrice = item.price;
-      const totalPrice = unitPrice * item.quantity;
+      // const totalPrice = unitPrice * item.quantity;
 
       return {
         order_id: createdOrder.id,

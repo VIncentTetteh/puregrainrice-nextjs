@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 import CartModal from '@/components/CartModal'
-import Head from 'next/head';
+// import Head from 'next/head';
 
 
 

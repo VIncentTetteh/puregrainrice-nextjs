@@ -486,7 +486,7 @@ export async function GET() {
     } catch {
       return NextResponse.json({ error: 'Access denied: Admin privileges required' }, { status: 403 })
     }
-    let { data: orders, error } = await supabase
+    const { data: orders, error } = await supabase
       .from('orders')
       .select(`
         *,
