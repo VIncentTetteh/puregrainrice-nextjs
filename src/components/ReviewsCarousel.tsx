@@ -8,10 +8,7 @@ interface Review {
   review_text: string
   user_name: string
   created_at: string
-  products: {
-    name: string
-    image_url: string
-  }
+  product_id: string
 }
 
 export default function ReviewsCarousel() {
@@ -145,7 +142,7 @@ export default function ReviewsCarousel() {
               <div className="mt-6 flex items-center justify-center space-x-3 text-sm text-gray-500">
                 <span>Review for:</span>
                 <span className="font-medium text-gray-700">
-                  {reviews[currentIndex].products.name}
+                  {reviews[currentIndex].product_id}
                 </span>
               </div>
             </div>

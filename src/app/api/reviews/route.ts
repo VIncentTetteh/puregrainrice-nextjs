@@ -11,11 +11,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('reviews')
       .select(`
-        *,
-        products (
-          name,
-          image_url
-        )
+        *
       `)
       .eq('is_verified', true)
       .order('created_at', { ascending: false })

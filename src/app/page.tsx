@@ -9,6 +9,7 @@ import Shop from '@/components/Shop';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import ReviewsCarousel from '@/components/ReviewsCarousel';
 
 export default function Home() {
   return (
@@ -18,7 +19,7 @@ export default function Home() {
 <About />
         <Products />
         <Benefits />
-        {/* <ReviewsCarousel /> */}
+        <ReviewsCarousel />
         <Shop />
         <Contact />
         <Footer />

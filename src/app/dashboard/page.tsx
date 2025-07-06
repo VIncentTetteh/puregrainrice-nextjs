@@ -109,6 +109,7 @@ export default function DashboardPage() {
   }
 
   const handleReviewClick = (orderId: string, productId: string, productName: string) => {
+    console.log('Review button clicked:', { orderId, productId, productName })
     setSelectedReview({ orderId, productId, productName })
     setShowReviewForm(true)
   }
@@ -215,7 +216,7 @@ export default function DashboardPage() {
                                   </div>
                                   {order.status === 'delivered' && (
                                     <button
-                                      onClick={() => handleReviewClick(order.id, item.id || item.product_id, item.product_id)}
+                                      onClick={() => handleReviewClick(order.id, item.product_id, item.product_id)}
                                       className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition-colors"
                                     >
                                       <i className="fas fa-star mr-1"></i>
