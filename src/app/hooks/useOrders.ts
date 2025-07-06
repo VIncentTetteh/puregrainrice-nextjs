@@ -56,7 +56,15 @@ export function useOrders() {
     let { data, error } = await supabase
       .from('orders')
       .select(`
-        *
+        *,
+        order_items (
+          id,
+          product_id,
+          product_weight_kg,
+          quantity,
+          unit_price,
+          total_price
+        )
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })

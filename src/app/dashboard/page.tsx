@@ -202,20 +202,20 @@ export default function DashboardPage() {
                                   </div> */}
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900">
-                                      {item.product_name}
+                                      {item.product_id}
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                      Qty: {item.quantity} × {formatCurrency(item.price ?? 0.00)}
+                                      Qty: {item.quantity} × {formatCurrency(item.unit_price)}
                                     </p>
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="text-sm font-medium text-gray-900 mb-2">
-                                    {formatCurrency((item.price ?? 0.00) * item.quantity)}
+                                    {formatCurrency((item.unit_price) * item.quantity)}
                                   </div>
                                   {order.status === 'delivered' && (
                                     <button
-                                      onClick={() => handleReviewClick(order.id, item.id || item.product_id, item.product_name)}
+                                      onClick={() => handleReviewClick(order.id, item.id || item.product_id, item.product_id)}
                                       className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition-colors"
                                     >
                                       <i className="fas fa-star mr-1"></i>
