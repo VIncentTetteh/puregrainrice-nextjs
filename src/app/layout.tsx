@@ -21,23 +21,25 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "PureGrain Rice - Premium Aromatic Long Grain Rice from Ghana",
-  description: "Premium aromatic long grain rice proudly produced by PurePlatter Foods LTD in Ghana. We're committed to delivering exceptional quality and freshness to your table.",
-  keywords: "rice, ghana, premium rice, aromatic rice, long grain rice, PureGrain, PurePlatter Foods",
+  title: "PurePlatter Foods LTD - Premium Food Products from Ghana | PureGrain Rice",
+  description: "PurePlatter Foods LTD delivers exceptional quality food products from Ghana. Shop our premium aromatic long grain PureGrain Rice with online ordering and fast delivery across 20+ cities. Order 5KG, 10KG, or 25KG bags today!",
+  keywords: "PurePlatter Foods, food products ghana, rice ghana, premium rice, aromatic rice, long grain rice, PureGrain Rice, buy rice online ghana, rice delivery ghana, ghana rice, quality rice, bulk rice ghana, 5kg rice, 10kg rice, 25kg rice, accra rice delivery, kumasi rice delivery, takoradi rice delivery, ghana food company",
   authors: [{ name: "PurePlatter Foods LTD" }],
   creator: "PurePlatter Foods LTD",
   publisher: "PurePlatter Foods LTD",
+  applicationName: "PurePlatter Foods",
+  category: "Food & Beverage",
   openGraph: {
-    title: "PureGrain Rice - Premium Aromatic Long Grain Rice from Ghana",
-    description: "Premium aromatic long grain rice proudly produced by PurePlatter Foods LTD in Ghana. We're committed to delivering exceptional quality and freshness to your table.",
-    url: "https://puregrainrice.com",
-    siteName: "PureGrain Rice",
+    title: "PurePlatter Foods LTD - Premium Food Products from Ghana",
+    description: "Premium quality food products from Ghana. Shop PureGrain Rice and more. Fast delivery across Ghana. Available in 5KG (₵120), 10KG (₵240), and 25KG (₵575) bags. Trusted by thousands of Ghanaian families.",
+    url: "https://www.pureplatterfoods.com",
+    siteName: "PurePlatter Foods LTD",
     images: [
       {
-        url: "https://puregrainrice.com/og-image.png",
+        url: "/IMG_4866.png",
         width: 1200,
         height: 630,
-        alt: "PureGrain Rice - Premium Aromatic Long Grain Rice from Ghana",
+        alt: "PurePlatter Foods LTD - Premium Food Products from Ghana",
       },
     ],
     locale: "en_GH",
@@ -45,15 +47,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PureGrain Rice - Premium Aromatic Long Grain Rice from Ghana",
-    description: "Premium aromatic long grain rice proudly produced by PurePlatter Foods LTD in Ghana. We're committed to delivering exceptional quality and freshness to your table.",
-    images: ["https://puregrainrice.com/og-image.png"],
-    creator: "@PurePlatterFoods",
+    title: "PurePlatter Foods LTD - Premium Food Products from Ghana",
+    description: "Premium quality food products from Ghana. Shop PureGrain Rice online. Fast delivery across Ghana. Available in 5KG, 10KG, and 25KG bags.",
+    images: ["/IMG_4866.png"],
   },
   robots: {
     index: true,
     follow: true,
-    noarchive: true,
+    noarchive: false,
     nosnippet: false,
     noimageindex: false,
     "max-snippet": -1,
@@ -61,9 +62,17 @@ export const metadata: Metadata = {
     "max-video-preview": -1,
   },
   icons: {
-    icon: "/leaf-solid.svg",
+    icon: [
+      { url: "/IMG_4866.png", sizes: "32x32", type: "image/png" },
+      { url: "/IMG_4866.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/IMG_4866.png",
+    shortcut: "/IMG_4866.png",
   },
-  
+  verification: {
+    // Add Google Search Console verification when available
+    // google: 'your-google-verification-code',
+  },
 };
 
 
@@ -72,6 +81,92 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.pureplatterfoods.com/#organization",
+        "name": "PurePlatter Foods LTD",
+        "url": "https://www.pureplatterfoods.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.pureplatterfoods.com/IMG_4866.png",
+          "width": 1080,
+          "height": 1080
+        },
+        "sameAs": [
+          "https://www.facebook.com/PurePlatter-Foods-LTD",
+          "https://www.linkedin.com/in/pureplatter-foods-ltd",
+          "https://www.tiktok.com/@pureplatterfoodsltdgh"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+233-54-288-0528",
+          "contactType": "Customer Service",
+          "areaServed": "GH",
+          "availableLanguage": ["English"]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Taifa Suma Ampim 23",
+          "addressCountry": "GH"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.pureplatterfoods.com/#website",
+        "url": "https://www.pureplatterfoods.com",
+        "name": "PurePlatter Foods LTD",
+        "description": "Premium food products from Ghana",
+        "publisher": {
+          "@id": "https://www.pureplatterfoods.com/#organization"
+        }
+      },
+      {
+        "@type": "Product",
+        "name": "PureGrain Rice - Aromatic Long Grain",
+        "description": "Premium aromatic long grain rice proudly produced in Ghana",
+        "brand": {
+          "@type": "Brand",
+          "name": "PureGrain Rice"
+        },
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "5KG Bag",
+            "price": "120",
+            "priceCurrency": "GHS",
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@id": "https://www.pureplatterfoods.com/#organization"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "10KG Bag",
+            "price": "240",
+            "priceCurrency": "GHS",
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@id": "https://www.pureplatterfoods.com/#organization"
+            }
+          },
+          {
+            "@type": "Offer",
+            "name": "25KG Bag",
+            "price": "575",
+            "priceCurrency": "GHS",
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@id": "https://www.pureplatterfoods.com/#organization"
+            }
+          }
+        ]
+      }
+    ]
+  };
+
   return (
     <html lang="en" className={inter.className}>
       <head>
@@ -82,6 +177,10 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </head>
       <body>

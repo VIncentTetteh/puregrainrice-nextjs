@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 const Footer = () => {
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
@@ -14,21 +16,32 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-4 gap-8">
           <div className="col-span-2">
-            <h3 className="text-2xl font-bold text-rice-gold mb-4">PureGrain Rice</h3>
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="bg-white rounded-lg p-2">
+                <Image
+                  src="/IMG_4866.png"
+                  alt="PurePlatter Foods Logo"
+                  width={50}
+                  height={50}
+                  className="h-16 w-auto"
+                />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-rice-gold">PurePlatter Foods LTD</h3>
+                <p className="text-sm text-gray-400">Premium Quality Products from Ghana</p>
+              </div>
+            </div>
             <p className="text-gray-300 mb-4 leading-relaxed">
-            Premium aromatic long grain rice proudly produced by PurePlatter Foods LTD in Ghana. We&apos;re committed to delivering exceptional quality and freshness to your table.
+            A Ghanaian company committed to delivering exceptional quality food products. Starting with our premium aromatic long grain PureGrain Rice, we&apos;re dedicated to bringing the finest products to your table.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-rice-gold transition duration-300">
+              <a href="https://www.facebook.com/PurePlatter-Foods-LTD" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-rice-gold transition duration-300" aria-label="Visit our Facebook page">
                 <i className="fab fa-facebook-f text-xl"></i>
               </a>
-              <a href="#" className="text-gray-300 hover:text-rice-gold transition duration-300">
-                <i className="fab fa-twitter text-xl"></i>
+              <a href="https://www.tiktok.com/@pureplatterfoodsltdgh" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-rice-gold transition duration-300" aria-label="Visit our TikTok page">
+                <i className="fab fa-tiktok text-xl"></i>
               </a>
-              <a href="#" className="text-gray-300 hover:text-rice-gold transition duration-300">
-                <i className="fab fa-instagram text-xl"></i>
-              </a>
-              <a href="#" className="text-gray-300 hover:text-rice-gold transition duration-300">
+              <a href="https://www.linkedin.com/in/pureplatter-foods-ltd" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-rice-gold transition duration-300" aria-label="Visit our LinkedIn page">
                 <i className="fab fa-linkedin-in text-xl"></i>
               </a>
             </div>
