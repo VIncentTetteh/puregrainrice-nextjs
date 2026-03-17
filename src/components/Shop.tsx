@@ -2,12 +2,14 @@
 
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 type Product = {
   id: string;
   name: string;
   price: number;
+  sale_price?: number | null;
   weight: string;
   weightDisplay: string;
   description: string;
@@ -87,9 +89,28 @@ const themeMap = {
 const Shop = () => {
   const { addToCart, setIsCartOpen } = useCart();
   const { user } = useAuth();
+  const [displayProducts, setDisplayProducts] = useState<Product[]>(products);
+
+  // Fetch sale prices from DB and merge onto hardcoded products
+  useEffect(() => {
+    fetch('/api/products')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.products?.length) return;
+        setDisplayProducts(products.map(p => {
+          const dbProduct = data.products.find((d: { name: string; sale_price: number | null }) =>
+            p.name.toLowerCase().includes(d.name?.toLowerCase?.() ?? '') ||
+            d.name?.toLowerCase?.().includes(p.weight.toLowerCase())
+          );
+          return dbProduct ? { ...p, sale_price: dbProduct.sale_price ?? null } : p;
+        }));
+      })
+      .catch(() => {/* silently use hardcoded */});
+  }, []);
 
   const handleAddToCart = async (product: Product) => {
-    await addToCart(product.id, product.price, product.weight, 1);
+    const cartPrice = product.sale_price ?? product.price;
+    await addToCart(product.id, cartPrice, product.weight, 1);
     toast.success(`${product.name} ${product.weight} added to cart!`, {
       icon: '🛒',
       style: { fontFamily: 'var(--font-body)' },
@@ -122,7 +143,7 @@ const Shop = () => {
 
         {/* Product Cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
-          {products.map((product) => {
+          {displayProducts.map((product) => {
             const theme = themeMap[product.theme];
             return (
               <div
@@ -172,11 +193,27 @@ const Shop = () => {
                 <div className="p-7 flex flex-col flex-1">
                   {/* Price */}
                   <div className="text-center mb-6 pb-6 border-b border-[var(--cream-dark)]">
-                    <div className="flex items-end justify-center gap-1">
-                      <span className={`text-4xl font-bold ${theme.price}`} style={{ fontFamily: 'var(--font-display)' }}>
-                        ₵{product.price}
+                    {product.sale_price ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-lg text-[var(--charcoal-muted)] line-through font-medium">
+                          ₵{product.price}
+                        </span>
+                        <span className="text-4xl font-bold text-red-600" style={{ fontFamily: 'var(--font-display)' }}>
+                          ₵{product.sale_price}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-end justify-center gap-1">
+                        <span className={`text-4xl font-bold ${theme.price}`} style={{ fontFamily: 'var(--font-display)' }}>
+                          ₵{product.price}
+                        </span>
+                      </div>
+                    )}
+                    {product.sale_price && (
+                      <span className="inline-block mt-1 text-xs font-semibold text-white bg-red-500 px-2 py-0.5 rounded-full">
+                        Save ₵{product.price - product.sale_price}
                       </span>
-                    </div>
+                    )}
                     <p className="text-xs text-[var(--charcoal-muted)] mt-1 font-medium">{product.perKg}</p>
                     <p className="text-xs text-[var(--charcoal-muted)] mt-1 leading-relaxed">{product.description}</p>
                   </div>

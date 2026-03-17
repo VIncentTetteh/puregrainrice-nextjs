@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   const name        = clamp(body.name, 200);
   const description = clamp(body.description, 2000);
   const price       = Number(body.price);
+  const sale_price  = body.sale_price ? Number(body.sale_price) : null;
   const weight_kg   = Number(body.weight_kg);
   const stock_qty   = Number(body.stock_qty ?? 0);
   const image_url   = clamp(body.image_url, 500);
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('products')
-    .insert([{ name, description, price, weight_kg, stock_qty, image_url, is_active }])
+    .insert([{ name, description, price, sale_price, weight_kg, stock_qty, image_url, is_active }])
     .select()
     .single();
 
@@ -66,6 +67,7 @@ export async function PATCH(req: NextRequest) {
   if (body.name        !== undefined) updates.name        = clamp(body.name, 200);
   if (body.description !== undefined) updates.description = clamp(body.description, 2000);
   if (body.price       !== undefined) updates.price       = Number(body.price);
+  if (body.sale_price  !== undefined) updates.sale_price  = body.sale_price ? Number(body.sale_price) : null;
   if (body.weight_kg   !== undefined) updates.weight_kg   = Number(body.weight_kg);
   if (body.stock_qty   !== undefined) updates.stock_qty   = Number(body.stock_qty);
   if (body.image_url   !== undefined) updates.image_url   = clamp(body.image_url, 500);

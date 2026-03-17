@@ -80,13 +80,6 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
   const [isPaystackLoaded, setIsPaystackLoaded] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
 
-  // Promo code state
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState<{
-    code: string; discount_amount: number; discount_type: string; discount_value: number; promo_id: string;
-  } | null>(null);
-  const [promoError, setPromoError] = useState('');
-  const [promoLoading, setPromoLoading] = useState(false);
 
   useEffect(() => {
     const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
@@ -165,47 +158,6 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
     if (validate(step1Fields)) setStep(2);
   };
 
-  const finalAmount = promoApplied
-    ? Math.max(0, totalAmount - promoApplied.discount_amount)
-    : totalAmount;
-
-  const applyPromo = async () => {
-    if (!promoCode.trim()) { setPromoError('Enter a promo code'); return; }
-    setPromoLoading(true);
-    setPromoError('');
-    try {
-      const res = await fetch('/api/promotions/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode.trim(), order_amount: totalAmount }),
-      });
-      const data = await res.json();
-      if (data.valid) {
-        setPromoApplied({
-          code: data.code,
-          discount_amount: data.discount_amount,
-          discount_type: data.discount_type,
-          discount_value: data.discount_value,
-          promo_id: data.promo_id,
-        });
-        toast.success(`Promo applied: GH₵${data.discount_amount.toFixed(2)} off!`);
-      } else {
-        setPromoError(data.error || 'Invalid promo code');
-        setPromoApplied(null);
-      }
-    } catch {
-      setPromoError('Failed to validate code. Try again.');
-    } finally {
-      setPromoLoading(false);
-    }
-  };
-
-  const removePromo = () => {
-    setPromoApplied(null);
-    setPromoCode('');
-    setPromoError('');
-  };
-
   const handlePayment = () => {
     const allTouched = Object.keys(details).reduce((a, k) => ({ ...a, [k]: true }), {});
     setTouched(allTouched);
@@ -219,7 +171,7 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
       const handler = window.PaystackPop.setup({
         key,
         email: details.email,
-        amount: Math.round(finalAmount * 100),
+        amount: Math.round(totalAmount * 100),
         currency: 'GHS',
         ref: 'PG_' + Date.now(),
         metadata: {
@@ -262,7 +214,6 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
         delivery_city: details.deliveryCity,
         delivery_notes: details.deliveryNotes,
         payment_status: paymentResponse.status,
-        ...(promoApplied ? { promo_id: promoApplied.promo_id, discount_amount: promoApplied.discount_amount } : {}),
         shipping_address: {
           user_email: details.email,
           fullName: details.fullName,
@@ -359,27 +310,11 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
               </div>
             ))}
           </div>
-          {promoApplied && (
-            <div className="flex justify-between items-center text-sm text-green-700 border-t border-[var(--cream-dark)] pt-2">
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                {promoApplied.code}
-              </span>
-              <span>−₵{promoApplied.discount_amount.toFixed(2)}</span>
-            </div>
-          )}
           <div className="flex justify-between items-center border-t border-[var(--cream-dark)] pt-3">
             <span className="font-bold text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-display)' }}>Total</span>
-            <div className="text-right">
-              {promoApplied && (
-                <span className="text-sm text-[var(--charcoal-muted)] line-through block">₵{totalAmount.toFixed(2)}</span>
-              )}
-              <span className="text-lg font-bold text-[var(--gold-dark)]" style={{ fontFamily: 'var(--font-display)' }}>
-                ₵{finalAmount.toFixed(2)}
-              </span>
-            </div>
+            <span className="text-lg font-bold text-[var(--gold-dark)]" style={{ fontFamily: 'var(--font-display)' }}>
+              ₵{totalAmount.toFixed(2)}
+            </span>
           </div>
         </div>
 
@@ -506,51 +441,6 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
               <FieldError field="deliveryNotes" />
             </div>
 
-            {/* Promo Code */}
-            <div>
-              <Label text="Promo Code" />
-              {promoApplied ? (
-                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-green-50 border border-green-200">
-                  <div className="flex items-center gap-2 text-sm text-green-700">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="font-bold">{promoApplied.code}</span>
-                    <span>— GH₵{promoApplied.discount_amount.toFixed(2)} off</span>
-                  </div>
-                  <button onClick={removePromo} className="text-xs text-green-600 hover:text-red-600 font-medium transition-colors">
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={promoCode}
-                    onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
-                    onKeyDown={e => e.key === 'Enter' && applyPromo()}
-                    placeholder="Enter promo code"
-                    className="flex-1 px-4 py-3 rounded-xl border border-[var(--cream-dark)] text-sm text-[var(--charcoal)] bg-[var(--off-white)] outline-none font-mono tracking-wider focus:ring-2 focus:ring-[var(--gold-muted)] focus:border-[var(--gold)] transition-all uppercase"
-                  />
-                  <button
-                    onClick={applyPromo}
-                    disabled={promoLoading}
-                    className="px-4 py-3 rounded-xl bg-[var(--charcoal)] text-white text-sm font-semibold hover:bg-[var(--charcoal-light)] transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {promoLoading ? '…' : 'Apply'}
-                  </button>
-                </div>
-              )}
-              {promoError && (
-                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                  <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {promoError}
-                </p>
-              )}
-            </div>
-
             {/* Paystack CTA */}
             <div className="pt-2">
               <button
@@ -582,7 +472,7 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    Pay GH₵{finalAmount.toFixed(2)} securely
+                    Pay GH₵{totalAmount.toFixed(2)} securely
                   </>
                 )}
               </button>

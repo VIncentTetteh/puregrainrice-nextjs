@@ -13,6 +13,7 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  sale_price: number | null;
   weight_kg: number;
   stock_qty: number;
   image_url: string;
@@ -21,7 +22,7 @@ interface Product {
   updated_at: string;
 }
 
-const emptyForm = { name: '', description: '', price: '', weight_kg: '', stock_qty: '0', image_url: '', is_active: true };
+const emptyForm = { name: '', description: '', price: '', sale_price: '', weight_kg: '', stock_qty: '0', image_url: '', is_active: true };
 
 export default function AdminProductsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -68,6 +69,7 @@ export default function AdminProductsPage() {
       name: p.name,
       description: p.description || '',
       price: String(p.price),
+      sale_price: p.sale_price ? String(p.sale_price) : '',
       weight_kg: String(p.weight_kg || ''),
       stock_qty: String(p.stock_qty || 0),
       image_url: p.image_url || '',
@@ -86,6 +88,7 @@ export default function AdminProductsPage() {
         name: form.name,
         description: form.description,
         price: parseFloat(form.price),
+        sale_price: form.sale_price ? parseFloat(form.sale_price) : null,
         weight_kg: form.weight_kg ? parseFloat(form.weight_kg) : null,
         stock_qty: parseInt(form.stock_qty) || 0,
         image_url: form.image_url,
@@ -267,7 +270,14 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="text-sm font-bold text-[var(--charcoal)]">GH₵{Number(p.price).toFixed(2)}</span>
+                        {p.sale_price ? (
+                          <div>
+                            <span className="text-xs text-[var(--charcoal-muted)] line-through block">GH₵{Number(p.price).toFixed(2)}</span>
+                            <span className="text-sm font-bold text-red-600">GH₵{Number(p.sale_price).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-bold text-[var(--charcoal)]">GH₵{Number(p.price).toFixed(2)}</span>
+                        )}
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="text-sm text-[var(--charcoal-muted)]">{p.weight_kg ? `${p.weight_kg}kg` : '—'}</span>
@@ -378,7 +388,7 @@ export default function AdminProductsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-1.5">Price (GH₵) *</label>
+                  <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-1.5">Regular Price (GH₵) *</label>
                   <input
                     type="number"
                     min="0"
@@ -401,6 +411,22 @@ export default function AdminProductsPage() {
                     placeholder="25"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-1.5">
+                  Sale Price (GH₵)
+                  <span className="ml-1 text-red-500 font-normal normal-case">— leave blank to remove discount</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.sale_price}
+                  onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl border border-red-200 bg-red-50/40 text-sm text-[var(--charcoal)] focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                  placeholder="e.g. 100.00 (shows old price crossed out)"
+                />
               </div>
 
               <div>
