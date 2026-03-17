@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isAdminUser } from '@/lib/admin';
-import { escapeHtml, clamp } from '@/lib/sanitize';
+import { clamp } from '@/lib/sanitize';
 
 async function requireAdmin() {
   const supabase = await createClient();
