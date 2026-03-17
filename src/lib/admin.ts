@@ -1,7 +1,10 @@
 // Admin access control — emails come from environment, not source code.
-// Set ADMIN_EMAILS in .env.local as a comma-separated list:
-//   ADMIN_EMAILS=admin@yourstore.com,another@yourstore.com
-const envEmails = process.env.ADMIN_EMAILS ?? ''
+// NEXT_PUBLIC_ADMIN_EMAILS is used client-side (Navigation, page guards).
+// ADMIN_EMAILS is used server-side (API routes). Keep both in sync in .env.
+const envEmails =
+  process.env.NEXT_PUBLIC_ADMIN_EMAILS ??
+  process.env.ADMIN_EMAILS ??
+  ''
 
 export const ADMIN_EMAILS: string[] = envEmails
   .split(',')
