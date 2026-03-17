@@ -1,10 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getIp } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getIp(request)
+    const rl = rateLimit(`delivery-confirm:${ip}`, 20, 60 * 60 * 1000) // 20/hr/IP
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const { orderId, confirmationCode } = await request.json()
-    
+
     if (!orderId || !confirmationCode) {
       return NextResponse.json({ error: 'Order ID and confirmation code are required' }, { status: 400 })
     }
@@ -22,7 +29,7 @@ export async function POST(request: NextRequest) {
       .from('delivery_confirmations')
       .select('*')
       .eq('order_id', orderId)
-      .eq('confirmation_code', confirmationCode.toUpperCase())
+      .eq('code', confirmationCode.toUpperCase())
       .eq('user_id', user.id)
       .is('confirmed_at', null)
       .single()

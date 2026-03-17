@@ -1,14 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
+import { rateLimit, getIp } from '@/lib/rateLimit'
 
-// Cryptographically secure 8-character hex code (e.g. "A3F2B19C")
+// Cryptographically secure 12-character hex code (e.g. "A3F2B19C4D7E")
 function generateCode(): string {
-  return randomBytes(4).toString('hex').toUpperCase()
+  return randomBytes(6).toString('hex').toUpperCase()
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getIp(request)
+    const rl = rateLimit(`delivery-generate:${ip}`, 10, 60 * 60 * 1000) // 10/hr/IP
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const body = await request.json()
     const orderId = typeof body?.orderId === 'string' ? body.orderId.trim() : null
 

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getIp } from '@/lib/rateLimit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,6 +37,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getIp(request)
+    const rl = rateLimit(`reviews:${ip}`, 10, 60 * 60 * 1000) // 10/hr/IP
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const { orderId, productId, rating, reviewText } = await request.json()
     
     if (!orderId || !productId || !rating) {

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import { Resend } from 'resend';
+import { escapeHtml } from '@/lib/sanitize';
 import { ShippingAddress } from '@/types/ShippingAddress';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -410,7 +411,7 @@ const createOrderStatusEmail = (
                         <div class="item">
                   
                             <div class="item-details">
-                                <div class="item-name">${item.product_id}</div>
+                                <div class="item-name">${escapeHtml(item.product_id)}</div>
                                 <div class="item-quantity">Quantity: ${item.quantity}</div>
                             </div>
                         </div>
@@ -463,7 +464,7 @@ ${trackingNumber ? `- Tracking Number: ${trackingNumber}` : ''}
 
 ${orderItems.length > 0 ? `
 Order Items:
-${orderItems.map(item => `- ${item.product_id} (Qty: ${item.quantity})`).join('\n')}
+${orderItems.map(item => `- ${escapeHtml(item.product_id)} (Qty: ${item.quantity})`).join('\n')}
 ` : ''}
 
 Need assistance? Contact us at ${supportEmail}
