@@ -1,55 +1,55 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
+
+// Cryptographically secure 8-character hex code (e.g. "A3F2B19C")
+function generateCode(): string {
+  return randomBytes(4).toString('hex').toUpperCase()
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { orderId } = await request.json()
-    
+    const body = await request.json()
+    const orderId = typeof body?.orderId === 'string' ? body.orderId.trim() : null
+
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
     }
 
     const supabase = await createClient()
-    
-    // Check authentication
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Generate a unique 6-character code
-    const generateCode = () => {
-      return Math.random().toString(36).substring(2, 8).toUpperCase()
+    // Verify the order belongs to this user before generating a code
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (orderError || !order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    let confirmationCode = generateCode()
-    let attempts = 0
-    const maxAttempts = 10
-
-    // Ensure the code is unique
-    while (attempts < maxAttempts) {
-      const { data: existingCode } = await supabase
+    // Find a unique code (collision extremely unlikely with 4 random bytes, but check anyway)
+    let code = generateCode()
+    for (let i = 0; i < 5; i++) {
+      const { data: existing } = await supabase
         .from('delivery_confirmations')
         .select('id')
-        .eq('confirmation_code', confirmationCode)
-        .single()
-
-      if (!existingCode) {
-        break
-      }
-      
-      confirmationCode = generateCode()
-      attempts++
+        .eq('code', code)
+        .maybeSingle()
+      if (!existing) break
+      code = generateCode()
     }
 
-    // Insert the confirmation code
     const { data, error } = await supabase
       .from('delivery_confirmations')
-      .insert({
-        order_id: orderId,
-        user_id: user.id,
-        confirmation_code: confirmationCode
-      })
+      .insert({ order_id: orderId, code })
       .select()
       .single()
 
@@ -58,13 +58,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to generate confirmation code' }, { status: 500 })
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      confirmationCode,
-      id: data.id 
-    })
-  } catch (error) {
-    console.error('Error in delivery code generation:', error)
+    return NextResponse.json({ success: true, code, id: data.id })
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

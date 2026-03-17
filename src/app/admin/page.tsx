@@ -56,13 +56,13 @@ export default function AdminPage() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string, notes?: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string, notes?: string, trackingNumber?: string) => {
     setUpdateLoading(orderId);
     try {
       const res = await fetch('/api/admin/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status: newStatus, notes }),
+        body: JSON.stringify({ orderId, status: newStatus, notes, trackingNumber }),
       });
       if (res.ok) {
         toast.success(`Order updated to ${newStatus}`);
@@ -100,8 +100,11 @@ export default function AdminPage() {
       const q = search.toLowerCase();
       return (
         o.id.toLowerCase().includes(q) ||
+        o.user_email?.toLowerCase().includes(q) ||
+        o.user_full_name?.toLowerCase().includes(q) ||
         o.shipping_address?.user_email?.toLowerCase().includes(q) ||
-        o.payment_reference?.toLowerCase().includes(q)
+        o.payment_reference?.toLowerCase().includes(q) ||
+        o.delivery_city?.toLowerCase().includes(q)
       );
     });
 
@@ -314,8 +317,13 @@ export default function AdminPage() {
                           </div>
                           <p className="text-xs text-[var(--charcoal-muted)]">
                             {fmt(order.created_at)}
-                            {order.shipping_address?.user_email && ` · ${order.shipping_address.user_email}`}
+                            {(order.user_email || order.shipping_address?.user_email) && ` · ${order.user_email || order.shipping_address?.user_email}`}
                           </p>
+                          {(order.user_full_name) && (
+                            <p className="text-xs text-[var(--charcoal-muted)] mt-0.5">
+                              {order.user_full_name}{order.delivery_city ? ` · ${order.delivery_city}` : ''}
+                            </p>
+                          )}
                           {order.payment_reference && (
                             <p className="text-xs text-[var(--charcoal-muted)] mt-0.5 font-mono">
                               Ref: {order.payment_reference}
@@ -381,7 +389,7 @@ export default function AdminPage() {
                     <div className="px-5 pb-4 flex flex-wrap gap-2">
                       {order.order_items.map(item => (
                         <span key={item.id} className="inline-flex items-center gap-1.5 bg-[var(--cream)] border border-[var(--cream-dark)] rounded-lg px-2.5 py-1 text-xs text-[var(--charcoal-muted)]">
-                          🌾 {item.product_id?.includes('25') ? '25KG' : item.product_id?.includes('10') ? '10KG' : '5KG'} × {item.quantity}
+                          🌾 {item.product_weight_kg || (item.product_id?.includes('25') ? '25KG' : item.product_id?.includes('10') ? '10KG' : '5KG')} × {item.quantity}
                           <span className="font-semibold text-[var(--charcoal)]">GH₵{(item.unit_price * item.quantity).toFixed(2)}</span>
                         </span>
                       ))}
@@ -399,8 +407,8 @@ export default function AdminPage() {
           order={selectedOrder}
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setSelectedOrder(null); }}
-          onStatusUpdate={(orderId, status, notes) => {
-            updateOrderStatus(orderId, status, notes);
+          onStatusUpdate={(orderId, status, notes, trackingNumber) => {
+            updateOrderStatus(orderId, status, notes, trackingNumber);
             setIsModalOpen(false);
             setSelectedOrder(null);
           }}

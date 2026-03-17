@@ -402,7 +402,7 @@ export default function DashboardPage() {
                           </div>
 
                           {/* Shipping address */}
-                          {order.shipping_address && (
+                          {(order.delivery_address || order.delivery_city) && (
                             <div className="mt-4 pt-4 border-t border-[var(--cream-dark)] flex items-start gap-2">
                               <svg className="w-4 h-4 text-[var(--gold)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -410,13 +410,13 @@ export default function DashboardPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
                               <div className="text-xs text-[var(--charcoal-muted)]">
-                                {(order.shipping_address.delivery_address as string) || 'Address on file'}
-                                {order.shipping_address.delivery_city && `, ${order.shipping_address.delivery_city as string}`}
+                                {order.delivery_address}
+                                {order.delivery_city && `, ${order.delivery_city}`}
                               </div>
                             </div>
                           )}
 
-                          {/* Status message */}
+                          {/* Delivery notes */}
                           {order.delivery_notes && (
                             <div className="mt-3 flex items-center gap-2 p-3 rounded-xl bg-[var(--forest-muted)] border border-[var(--forest)]/10">
                               <svg className="w-4 h-4 text-[var(--forest)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

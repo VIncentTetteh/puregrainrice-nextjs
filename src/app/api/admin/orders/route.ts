@@ -146,7 +146,7 @@ const createOrderStatusEmail = (
             }
             
             .header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #1A1A1A 0%, #1E3D2F 100%);
                 color: white;
                 padding: 30px 20px;
                 text-align: center;
@@ -308,7 +308,7 @@ const createOrderStatusEmail = (
             
             .cta-button {
                 display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #9A7A2A 0%, #C9A84C 100%);
                 color: white;
                 text-decoration: none;
                 padding: 12px 24px;
@@ -398,7 +398,7 @@ const createOrderStatusEmail = (
                     ${totalAmount > 0 ? `
                     <div class="detail-row">
                         <span class="detail-label">Order Total:</span>
-                        <span class="detail-value">$${totalAmount.toFixed(2)}</span>
+                        <span class="detail-value">GH&#8373;${totalAmount.toFixed(2)}</span>
                     </div>
                     ` : ''}
                 </div>
@@ -458,7 +458,7 @@ Order Summary:
 - Order Date: ${orderDate}
 - Current Status: ${status}
 ${totalItems > 0 ? `- Total Items: ${totalItems}` : ''}
-${totalAmount > 0 ? `- Order Total: $${totalAmount.toFixed(2)}` : ''}
+${totalAmount > 0 ? `- Order Total: GH₵${totalAmount.toFixed(2)}` : ''}
 ${trackingNumber ? `- Tracking Number: ${trackingNumber}` : ''}
 
 ${orderItems.length > 0 ? `
@@ -589,7 +589,7 @@ export async function PATCH(request: NextRequest) {
           product_id,
           quantity,
           unit_price,
-          total_price,
+          total_price
         )
       `)
       .eq('id', orderId)

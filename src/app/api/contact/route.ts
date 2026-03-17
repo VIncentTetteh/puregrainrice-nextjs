@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { escapeHtml, isValidEmail, clamp } from '@/lib/sanitize';
+import { rateLimit, getIp } from '@/lib/rateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -706,62 +708,74 @@ Thank you for choosing ${process.env.COMPANY_NAME || 'us'}!
   };
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limit: 5 submissions per hour per IP
+  const ip = getIp(req);
+  const { allowed } = rateLimit(`contact:${ip}`, 5, 60 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const data = await req.json();
-    const { firstName, lastName, email, phone, subject, message } = data;
 
     // Validate required fields
-    if (!firstName || !email || !subject || !message) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields: firstName, email, subject, and message are required' 
+    const firstName = clamp(data.firstName, 50);
+    const lastName  = clamp(data.lastName,  50);
+    const email     = clamp(data.email,      254);
+    const phone     = clamp(data.phone,      20);
+    const subject   = clamp(data.subject,    100);
+    const message   = clamp(data.message,    2000);
+
+    if (!firstName || !isValidEmail(email) || !subject || !message) {
+      return NextResponse.json({
+        success: false,
+        error: 'Please provide your name, a valid email, subject, and message.',
       }, { status: 400 });
     }
 
-    // Create email templates
-    const adminEmail = createAdminNotificationEmail(firstName, lastName, email, phone, subject, message);
-    const customerEmail = createCustomerConfirmationEmail(firstName, lastName, subject);
+    // Escape all user input before inserting into HTML email templates
+    const safe = {
+      firstName: escapeHtml(firstName),
+      lastName:  escapeHtml(lastName),
+      email:     escapeHtml(email),
+      phone:     escapeHtml(phone),
+      subject:   escapeHtml(subject),
+      message:   escapeHtml(message),
+    };
 
-    // Send admin notification email
+    const adminEmail    = createAdminNotificationEmail(safe.firstName, safe.lastName, safe.email, safe.phone, safe.subject, safe.message);
+    const customerEmail = createCustomerConfirmationEmail(safe.firstName, safe.lastName, safe.subject);
+
     await resend.emails.send({
-      from: process.env.EMAIL_FROM!,
-      to: process.env.EMAIL_FROM!,
-      subject: `🔔 New Contact: ${subject}`,
+      from:    process.env.EMAIL_FROM!,
+      to:      process.env.EMAIL_FROM!,
+      subject: `🔔 New Contact: ${safe.subject}`,
       replyTo: email,
-      html: adminEmail.html,
-      text: adminEmail.text,
+      html:    adminEmail.html,
+      text:    adminEmail.text,
     });
 
-    // Send customer confirmation email (optional, but recommended)
     if (process.env.SEND_CUSTOMER_CONFIRMATION !== 'false') {
       try {
         await resend.emails.send({
-          from: process.env.EMAIL_FROM!,
-          to: email,
+          from:    process.env.EMAIL_FROM!,
+          to:      email,
           subject: `Thank you for contacting ${process.env.COMPANY_NAME || 'us'} - We'll be in touch!`,
-          html: customerEmail.html,
-          text: customerEmail.text,
+          html:    customerEmail.html,
+          text:    customerEmail.text,
         });
-        console.log(`Confirmation email sent to ${email}`);
       } catch (confirmationError) {
         console.error('Error sending confirmation email:', confirmationError);
-        // Don't fail the main request if confirmation email fails
       }
     }
 
-    console.log(`Contact form submission processed for ${firstName} ${lastName} (${email})`);
-    
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Your message has been sent successfully! We\'ll get back to you soon.'
+      message: "Your message has been sent successfully! We'll get back to you soon.",
     });
-    
-  } catch (error) {
-    console.error('[CONTACT FORM ERROR]', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to send message. Please try again later.' 
-    }, { status: 500 });
+
+  } catch {
+    return NextResponse.json({ success: false, error: 'Failed to send message. Please try again later.' }, { status: 500 });
   }
 }

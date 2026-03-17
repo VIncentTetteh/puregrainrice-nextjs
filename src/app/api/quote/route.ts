@@ -1,11 +1,45 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { escapeHtml, isValidEmail, clamp } from '@/lib/sanitize';
+import { rateLimit, getIp } from '@/lib/rateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate limit: 10 quote requests per day per IP
+  const ip = getIp(req);
+  const { allowed } = rateLimit(`quote:${ip}`, 10, 24 * 60 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json({ success: false, error: 'Too many requests. Please try again tomorrow.' }, { status: 429 });
+  }
+
   try {
-    const { name, email, phone, quantity, message } = await req.json();
+    const body = await req.json();
+
+    const name     = clamp(body.name,     100);
+    const email    = clamp(body.email,    254);
+    const phone    = clamp(body.phone,    20);
+    const quantity = clamp(body.quantity, 50);
+    const message  = clamp(body.message,  1000);
+
+    if (!name || !isValidEmail(email) || !quantity) {
+      return NextResponse.json({ success: false, error: 'Name, valid email, and quantity are required.' }, { status: 400 });
+    }
+
+    // Validate quantity is a sensible number
+    const qty = parseFloat(quantity);
+    if (isNaN(qty) || qty <= 0 || qty > 100000) {
+      return NextResponse.json({ success: false, error: 'Please enter a valid quantity.' }, { status: 400 });
+    }
+
+    // Escape all user input before embedding in HTML templates
+    const safe = {
+      name:     escapeHtml(name),
+      email:    escapeHtml(email),
+      phone:    escapeHtml(phone),
+      quantity: escapeHtml(quantity),
+      message:  escapeHtml(message),
+    };
 
     // HTML email template
     const htmlTemplate = `
@@ -122,26 +156,26 @@ export async function POST(req: Request) {
           <div class="content">
             <div class="field-group">
               <span class="field-label">👤 Customer Name</span>
-              <div class="field-value">${name}</div>
+              <div class="field-value">${safe.name}</div>
             </div>
             
             <div class="field-group">
               <span class="field-label">📧 Email Address</span>
               <div class="field-value">
-                <a href="mailto:${email}" style="color: #667eea; text-decoration: none;">${email}</a>
+                <a href="mailto:${safe.email}" style="color: #667eea; text-decoration: none;">${safe.email}</a>
               </div>
             </div>
             
             <div class="field-group">
               <span class="field-label">📱 Phone Number</span>
               <div class="field-value">
-                <a href="tel:${phone}" style="color: #667eea; text-decoration: none;">${phone}</a>
+                <a href="tel:${safe.phone}" style="color: #667eea; text-decoration: none;">${safe.phone}</a>
               </div>
             </div>
             
             <div class="field-group">
               <span class="field-label">📦 Quantity Requested</span>
-              <div class="field-value">${quantity}</div>
+              <div class="field-value">${safe.quantity}</div>
             </div>
             
             <div class="field-group message-field">
@@ -175,10 +209,10 @@ export async function POST(req: Request) {
     const textTemplate = `
 🔷 NEW QUOTE REQUEST 🔷
 
-👤 Customer Name: ${name}
-📧 Email: ${email}
-📱 Phone: ${phone}
-📦 Quantity: ${quantity}
+👤 Customer Name: ${safe.name}
+📧 Email: ${safe.email}
+📱 Phone: ${safe.phone}
+📦 Quantity: ${safe.quantity}
 
 💬 Message:
 ${message || 'No additional message provided.'}
@@ -194,7 +228,7 @@ Please respond within 24 hours for the best customer experience.
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
       to: process.env.EMAIL_FROM!,
-      subject: `🔔 New Quote Request from ${name}`,
+      subject: `🔔 New Quote Request from ${safe.name}`,
       replyTo: email,
       html: htmlTemplate,
       text: textTemplate,
@@ -270,7 +304,7 @@ Please respond within 24 hours for the best customer experience.
           </div>
           
           <div class="content">
-            <p>Hi ${name},</p>
+            <p>Hi ${safe.name},</p>
             
             <div class="confirmation-box">
               <h2 style="color: #155724; margin-top: 0;">Your quote request has been successfully submitted!</h2>
@@ -280,8 +314,8 @@ Please respond within 24 hours for the best customer experience.
             <p>Here's a summary of your request:</p>
             
             <div class="details-summary">
-              <p><strong>Quantity:</strong> ${quantity}</p>
-              ${message ? `<p><strong>Your Message:</strong><br>${message}</p>` : ''}
+              <p><strong>Quantity:</strong> ${safe.quantity}</p>
+              ${message ? `<p><strong>Your Message:</strong><br>${safe.message}</p>` : ''}
               <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
             </div>
             
@@ -302,13 +336,13 @@ Please respond within 24 hours for the best customer experience.
     const customerTextTemplate = `
 ✅ QUOTE REQUEST CONFIRMATION
 
-Hi ${name},
+Hi ${safe.name},
 
 Thank you for your quote request! We've successfully received your submission and will get back to you within 24 hours.
 
 SUMMARY:
-Quantity: ${quantity}
-${message ? `Message: ${message}` : ''}
+Quantity: ${safe.quantity}
+${message ? `Message: ${safe.message}` : ''}
 Submitted: ${new Date().toLocaleString()}
 
 Our team will review your request and send you a detailed quote soon.
@@ -329,11 +363,7 @@ This is an automated confirmation. If you didn't submit this request, please con
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Quote request error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error' 
-    }, { status: 500 });
+  } catch {
+    return NextResponse.json({ success: false, error: 'Failed to submit quote request. Please try again.' }, { status: 500 });
   }
 }
