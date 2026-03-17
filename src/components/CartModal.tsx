@@ -3,43 +3,8 @@
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOrders } from '@/app/hooks/useOrders';
-import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import CheckoutForm from '@/components/CheckoutForm';
-
-interface PaystackResponse {
-  reference: string;
-  message: string;
-  status: string;
-  trans: string;
-  transaction: string;
-  trxref: string;
-}
-
-// interface PaystackHandler {
-//   openIframe(): void;
-// }
-
-// interface PaystackPop {
-//   setup(options: {
-//     key: string;
-//     email: string;
-//     amount: number;
-//     currency: string;
-//     ref: string;
-//     metadata: Record<string, unknown>;
-//     callback: (response: PaystackResponse) => void;
-//     onClose: () => void;
-//   }): PaystackHandler;
-// }
-
-// declare global {
-//   interface Window {
-//     PaystackPop: PaystackPop;
-//   }
-// }
 
 const CartModal = () => {
   const {
@@ -50,244 +15,222 @@ const CartModal = () => {
     updateQuantity,
     removeFromCart,
     clearCart,
-    clearCartOnOrderSuccess
   } = useCart();
   const { user } = useAuth();
-  const { createOrder } = useOrders();
-  const router = useRouter();
-
-  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
 
   const checkout = () => {
-    if (cart.length === 0) {
-      toast.error('Your cart is empty!');
-      return;
-    }
-    
-    if (!user) {
-      toast.error('Please sign in to place an order');
-      return;
-    }
-    
-    // Show checkout form to collect delivery details
+    if (cart.length === 0) return;
+    if (!user) return;
     setShowCheckoutForm(true);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handlePayment = (customerEmail: string) => {
-    const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY_TEST || '';
-    if (!paystackKey) {
-      toast.error('Payment system is not configured. Please contact support.');
-      return;
-    }
-
-    const totalInPesewas = totalAmount * 100;
-
-    if (typeof window === 'undefined' || !window.PaystackPop || typeof window.PaystackPop.setup !== 'function') {
-      toast.error('Payment system not loaded. Please try again.');
-      return;
-    }
-
-    const handler = window.PaystackPop.setup({
-      key: paystackKey,
-      email: customerEmail,
-      amount: totalInPesewas,
-      currency: 'GHS',
-      ref: 'PG_' + Math.floor((Math.random() * 1000000000) + 1),
-      metadata: {
-        custom_fields: [{
-          display_name: "Cart Items",
-          variable_name: "cart_items",
-          value: cart.map(item => `${item.weight_kg} (${item.quantity})`).join(', ')
-        }],
-        customer_email: customerEmail,
-        order_total: totalAmount,
-        business_name: "PurePlatter Foods LTD"
-      },
-      callback: function (response: PaystackResponse) {
-        (async () => {
-          setIsProcessingOrder(true);
-          try {
-            const orderItems = cart.map(item => ({
-              product_id: item.product_id,
-              quantity: item.quantity,
-              price: item.price, // <-- use 'price' not 'unit_price'
-              weight_kg: item.weight_kg // <-- use 'weight_kg' not 'product_weight_kg'
-            }))
-
-            const shippingAddress = {
-              email: customerEmail,
-              user_email: customerEmail,
-              user_full_name: 'Quick Order Customer',
-              user_phone: '000-000-0000',
-              delivery_address: 'Address to be confirmed',
-              delivery_city: 'Accra',
-              payment_reference: response.reference
-            };
-
-            const order = await createOrder(orderItems, shippingAddress);
-
-            if (order && order.id) {
-              console.log('Order created successfully in CartModal:', order);
-              toast.success(`🎉 Payment successful! Order #${order.id.slice(-8)} created!`);
-              clearCartOnOrderSuccess();
-              setIsCartOpen(false);
-              // Add longer delay to ensure cart clearing completes and UI updates
-              setTimeout(() => {
-                console.log('Navigating to dashboard from CartModal...');
-                router.push('/dashboard');
-              }, 1000);
-            } else {
-              console.error('Order creation failed in CartModal - no order ID returned');
-              // Even if order creation appears to fail, the payment was successful
-              toast.success('🎉 Payment successful! Redirecting to check your orders...');
-              clearCartOnOrderSuccess();
-              setIsCartOpen(false);
-              setTimeout(() => {
-                console.log('Navigating to dashboard after payment success...');
-                router.push('/dashboard');
-              }, 1000);
-            }
-          } catch (error) {
-            console.error('Error creating order:', error);
-            toast.error('Payment successful but failed to create order. Please contact support.');
-          } finally {
-            setIsProcessingOrder(false);
-          }
-        })();
-      },
-      onClose: function () {
-        toast('Payment dialog was closed.');
-      }
-    });
-
-    handler.openIframe();
   };
 
   if (!isCartOpen) return null;
 
   return (
     <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        onClick={() => setIsCartOpen(false)}
+      />
 
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full max-h-screen overflow-y-auto">
-          <div className="p-6 border-b">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">Your Cart</h2>
+      {/* Drawer */}
+      <div className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-white shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--cream-dark)] bg-[var(--off-white)]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[var(--gold-muted)] flex items-center justify-center">
+              <svg className="w-5 h-5 text-[var(--gold-dark)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-display)' }}>
+                Your Cart
+              </h2>
+              <p className="text-xs text-[var(--charcoal-muted)]">
+                {cart.length === 0 ? 'Empty' : `${cart.reduce((s, i) => s + i.quantity, 0)} item${cart.reduce((s, i) => s + i.quantity, 0) !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsCartOpen(false)}
+            className="w-9 h-9 rounded-xl border border-[var(--cream-dark)] flex items-center justify-center text-[var(--charcoal-muted)] hover:bg-[var(--cream)] transition-colors"
+            aria-label="Close cart"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {cart.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-16">
+              <div className="w-20 h-20 rounded-full bg-[var(--cream)] flex items-center justify-center text-4xl mb-4">
+                🛒
+              </div>
+              <h3 className="font-bold text-[var(--charcoal)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+                Your cart is empty
+              </h3>
+              <p className="text-sm text-[var(--charcoal-muted)] mb-6">
+                Add some PureGrain Rice to get started.
+              </p>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="btn-primary !text-sm !py-2.5 !px-6"
               >
-                <i className="fas fa-times text-2xl"></i>
+                Browse Products
               </button>
             </div>
-          </div>
-
-          <div className="p-6">
-            <div className="space-y-4 mb-6">
-              {cart.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  <i className="fas fa-shopping-cart text-4xl mb-4"></i>
-                  <p>Your cart is empty</p>
-                </div>
-              ) : (
-                cart.map((item) => (
-                  <div key={item.product_id || ""} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">{item.weight_kg}</h4>
-                      <p className="text-rice-gold font-bold">₵{item.price}</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
-                        className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
-                      >
-                        <i className="fas fa-minus text-sm"></i>
-                      </button>
-                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
-                        className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
-                      >
-                        <i className="fas fa-plus text-sm"></i>
-                      </button>
-                      <button
-                        onClick={() => removeFromCart(item.product_id)}
-                        className="ml-4 text-red-500 hover:text-red-700"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </div>
+          ) : (
+            <div className="space-y-3">
+              {cart.map((item) => (
+                <div
+                  key={item.product_id}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--cream)] border border-[var(--cream-dark)]"
+                >
+                  {/* Product icon */}
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--gold-dark)] to-[var(--gold)] flex items-center justify-center text-white text-xl flex-shrink-0">
+                    🌾
                   </div>
-                ))
-              )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[var(--charcoal)] truncate">
+                      PureGrain Rice
+                    </p>
+                    <p className="text-xs text-[var(--charcoal-muted)]">{item.weight_kg}</p>
+                    <p className="text-sm font-bold text-[var(--gold-dark)] mt-0.5">
+                      ₵{(item.price * item.quantity).toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* Qty controls */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                      className="w-7 h-7 rounded-lg bg-white border border-[var(--cream-dark)] flex items-center justify-center text-[var(--charcoal-muted)] hover:border-[var(--gold)] hover:text-[var(--gold-dark)] transition-colors"
+                      aria-label="Decrease quantity"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span className="w-6 text-center text-sm font-bold text-[var(--charcoal)]">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                      className="w-7 h-7 rounded-lg bg-white border border-[var(--cream-dark)] flex items-center justify-center text-[var(--charcoal-muted)] hover:border-[var(--gold)] hover:text-[var(--gold-dark)] transition-colors"
+                      aria-label="Increase quantity"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => removeFromCart(item.product_id)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--charcoal-muted)] hover:text-red-500 hover:bg-red-50 transition-colors ml-1"
+                      aria-label="Remove item"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {cart.length > 0 && (
+          <div className="border-t border-[var(--cream-dark)] px-6 py-5 bg-[var(--off-white)] space-y-4">
+            {/* Order summary */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-[var(--charcoal-muted)]">
+                <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} items)</span>
+                <span>₵{totalAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-[var(--charcoal-muted)]">
+                <span>Delivery</span>
+                <span className="text-[var(--forest)] font-medium">Calculated at checkout</span>
+              </div>
+              <div className="flex justify-between text-base font-bold text-[var(--charcoal)] pt-2 border-t border-[var(--cream-dark)]">
+                <span style={{ fontFamily: 'var(--font-display)' }}>Total</span>
+                <span style={{ fontFamily: 'var(--font-display)' }}>₵{totalAmount.toFixed(2)}</span>
+              </div>
             </div>
 
-            {cart.length > 0 && (
-              <>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span>Total:</span>
-                    <span>₵{totalAmount}</span>
+            {/* Auth check + CTA */}
+            {user ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--cream)] rounded-xl">
+                  <div className="w-6 h-6 rounded-full bg-[var(--gold)] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {user.email?.[0]?.toUpperCase()}
                   </div>
+                  <p className="text-xs text-[var(--charcoal-muted)] truncate">
+                    Ordering as <span className="font-semibold text-[var(--charcoal)]">{user.email}</span>
+                  </p>
                 </div>
-
-                <div className="mt-6">
-                  {user ? (
-                    <>
-                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          Checkout as: <span className="font-medium text-gray-800">{user.email}</span>
-                        </p>
-                      </div>
-                      <button
-                        onClick={checkout}
-                        disabled={isProcessingOrder}
-                        className="w-full bg-rice-gold hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition duration-300 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isProcessingOrder ? 'Processing...' : 'Proceed to Checkout'}
-                      </button>
-                    </>
-                  ) : (
-                    <div className="mb-3">
-                      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-center mb-2">
-                          <i className="fas fa-info-circle text-blue-500 mr-2"></i>
-                          <p className="font-medium text-blue-800">
-                            Ready to checkout?
-                          </p>
-                        </div>
-                        <p className="text-sm text-blue-700">
-                          Sign in to complete your purchase and track your order. Your cart items will be saved!
-                        </p>
-                      </div>
-                      <Link href="/login" onClick={() => setIsCartOpen(false)}>
-                        <button className="w-full bg-rice-gold hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition duration-300 flex items-center justify-center">
-                          <i className="fas fa-sign-in-alt mr-2"></i>
-                          Sign In to Checkout
-                        </button>
-                      </Link>
-                    </div>
-                  )}
-                  <button
-                    onClick={clearCart}
-                    className="w-full border border-gray-300 text-gray-700 hover:bg-gray-50 py-3 rounded-lg font-semibold transition duration-300"
-                  >
-                    Clear Cart
+                <button
+                  onClick={checkout}
+                  className="btn-primary w-full !rounded-xl !py-3.5"
+                >
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                    Proceed to Checkout
+                  </>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                  <p className="text-xs text-blue-700 font-medium">
+                    Sign in to complete your purchase. Your cart is saved!
+                  </p>
+                </div>
+                <Link href="/login" onClick={() => setIsCartOpen(false)}>
+                  <button className="btn-primary w-full !rounded-xl !py-3.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Sign In to Checkout
                   </button>
-                </div>
-              </>
+                </Link>
+              </div>
             )}
+
+            <button
+              onClick={clearCart}
+              className="w-full text-xs text-[var(--charcoal-muted)] hover:text-red-500 transition-colors py-1"
+            >
+              Clear cart
+            </button>
           </div>
-        </div>
+        )}
       </div>
-      
+
       {/* Checkout Form Modal */}
       {showCheckoutForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-screen overflow-y-auto">
-            <CheckoutForm 
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowCheckoutForm(false)}
+          />
+          <div className="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <CheckoutForm
               onBack={() => setShowCheckoutForm(false)}
               onOrderSuccess={() => setShowCheckoutForm(false)}
             />

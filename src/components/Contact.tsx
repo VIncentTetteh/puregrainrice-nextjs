@@ -20,329 +20,355 @@ interface FormErrors {
   message?: string;
 }
 
+const contactInfo = [
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+    label: 'Address',
+    value: 'Taifa Suma Ampim 23, Ghana',
+    href: null,
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+      </svg>
+    ),
+    label: 'Phone',
+    value: '+233 54 288 0528',
+    href: 'tel:+233542880528',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+    label: 'Email',
+    value: 'info@pureplatterfoods.com',
+    href: 'mailto:info@pureplatterfoods.com',
+  },
+];
+
+const hours = [
+  { day: 'Monday – Friday', time: '8:00 AM – 6:00 PM' },
+  { day: 'Saturday', time: '8:00 AM – 4:00 PM' },
+  { day: 'Sunday', time: 'Closed' },
+];
+
 const Contact = () => {
   const [formData, setFormData] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    subject: 'General Inquiry',
-    message: ''
+    firstName: '', lastName: '', email: '', phone: '',
+    subject: 'General Inquiry', message: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Validation functions
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const validatePhone = (v: string) => {
+    const clean = v.replace(/[\s\-\(\)]/g, '');
+    return clean.length >= 10 && /^[\+]?[1-9][\d]{0,15}$/.test(clean);
+  };
+  const validateName = (v: string) => v.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(v.trim());
+  const validateMessage = (v: string) => v.trim().length >= 10 && v.trim().length <= 1000;
+
+  const validate = (): boolean => {
+    const e: FormErrors = {};
+    if (!validateName(formData.firstName)) e.firstName = 'Enter a valid first name (min 2 letters)';
+    if (!validateName(formData.lastName)) e.lastName = 'Enter a valid last name (min 2 letters)';
+    if (!validateEmail(formData.email)) e.email = 'Enter a valid email address';
+    if (formData.phone && !validatePhone(formData.phone)) e.phone = 'Enter a valid phone number';
+    if (!validateMessage(formData.message)) e.message = 'Message must be 10–1000 characters';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const validatePhone = (phone: string): boolean => {
-    // Allow various phone formats including international
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    return cleanPhone.length >= 10 && phoneRegex.test(cleanPhone);
-  };
-
-  const validateName = (name: string): boolean => {
-    return name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name.trim());
-  };
-
-  const validateMessage = (message: string): boolean => {
-    return message.trim().length >= 10 && message.trim().length <= 1000;
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    // First Name validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    } else if (!validateName(formData.firstName)) {
-      newErrors.firstName = 'First name must be at least 2 characters and contain only letters';
-    }
-
-    // Last Name validation
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    } else if (!validateName(formData.lastName)) {
-      newErrors.lastName = 'Last name must be at least 2 characters and contain only letters';
-    }
-
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Phone validation (optional but validate if provided)
-    if (formData.phone.trim() && !validatePhone(formData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number (minimum 10 digits)';
-    }
-
-    // Message validation
-    if (!formData.message.trim()) {
-      newErrors.message = 'Message is required';
-    } else if (!validateMessage(formData.message)) {
-      newErrors.message = 'Message must be between 10 and 1000 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Clear error for this field when user starts typing
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name as keyof FormErrors]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      toast.error('Please fix the validation errors before submitting');
-      return;
-    }
-
+    if (!validate()) { toast.error('Please fix the errors below'); return; }
     setIsSubmitting(true);
-
     try {
-      const response = await fetch('/api/contact', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
-      const result = await response.json();
-
+      const result = await res.json();
       if (result.success) {
-        toast.success('Thank you for your message! We will get back to you soon.');
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          subject: 'General Inquiry',
-          message: ''
-        });
+        toast.success('Message sent! We\'ll get back to you soon.', { icon: '✅' });
+        setFormData({ firstName: '', lastName: '', email: '', phone: '', subject: 'General Inquiry', message: '' });
         setErrors({});
       } else {
-        throw new Error(result.error || 'Failed to send message');
+        throw new Error(result.error || 'Failed');
       }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Sorry, there was an error sending your message. Please try again or contact us directly via WhatsApp.');
+    } catch {
+      toast.error('Could not send message. Try WhatsApp instead.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const inputClass = (field: keyof FormErrors) =>
+    `w-full px-4 py-3 rounded-xl border text-[var(--charcoal)] bg-[var(--off-white)] text-sm transition-all duration-200 outline-none focus:ring-2 placeholder:text-[var(--charcoal-muted)]/50 ${
+      errors[field]
+        ? 'border-red-300 focus:ring-red-200 focus:border-red-400'
+        : 'border-[var(--cream-dark)] focus:ring-[var(--gold-muted)] focus:border-[var(--gold)]'
+    }`;
+
   return (
-    <section id="contact" className="py-20 bg-gray-900 text-white">
+    <section
+      id="contact"
+      className="overflow-hidden"
+      style={{
+        paddingTop: 'var(--section-py)',
+        paddingBottom: 'var(--section-py)',
+        background: 'linear-gradient(160deg, var(--charcoal) 0%, var(--charcoal-light) 40%, #1e2d25 100%)',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Get In Touch</h2>
-          <div className="w-24 h-1 bg-rice-gold mx-auto mb-8"></div>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Contact us today to learn more about our premium PureGrain Rice or to place your order
+          <span className="badge bg-white/10 text-white/80 border border-white/15 mb-4">
+            Get In Touch
+          </span>
+          <h2
+            className="text-4xl md:text-5xl font-bold text-white mb-4"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            We&apos;d Love to <span className="text-gradient-gold">Hear From You</span>
+          </h2>
+          <div className="gold-divider my-6" />
+          <p className="text-white/60 text-lg max-w-xl mx-auto">
+            Whether you have a question about our products, want to place a bulk order,
+            or just want to say hello — we&apos;re here.
           </p>
         </div>
-        
-        <div className="grid md:grid-cols-2 gap-12">
-          <div>
-            <h3 className="text-3xl font-bold mb-8">Contact Information</h3>
-            
-            <div className="space-y-6">
-              <div className="flex items-start">
-                <i className="fas fa-building text-rice-gold text-xl mr-4 mt-1"></i>
-                <div>
-                  <h4 className="font-semibold text-lg mb-1">Company</h4>
-                  <p className="text-gray-300">PurePlatter Foods LTD</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <i className="fas fa-map-marker-alt text-rice-gold text-xl mr-4 mt-1"></i>
-                <div>
-                  <h4 className="font-semibold text-lg mb-1">Address</h4>
-                  <p className="text-gray-300">Taifa Suma Ampim 23<br />Ghana</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <i className="fas fa-phone text-rice-gold text-xl mr-4 mt-1"></i>
-                <div>
-                  <h4 className="font-semibold text-lg mb-1">Phone</h4>
-                  <p className="text-gray-300">+233 54 288 0528</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <i className="fas fa-envelope text-rice-gold text-xl mr-4 mt-1"></i>
-                <div>
-                  <h4 className="font-semibold text-lg mb-1">Email</h4>
-                  <p className="text-gray-300">info@pureplatterfoods.com</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-8">
-              <h4 className="font-semibold text-lg mb-4">Business Hours</h4>
-              <div className="text-gray-300 space-y-1">
-                <p>Monday - Friday: 8:00 AM - 6:00 PM</p>
-                <p>Saturday: 8:00 AM - 4:00 PM</p>
-                <p>Sunday: Closed</p>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-3xl font-bold mb-8">Send us a Message</h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    First Name <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
-                      errors.firstName 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-700 focus:border-rice-gold'
-                    }`}
-                  />
-                  {errors.firstName && (
-                    <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Last Name <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
-                      errors.lastName 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-gray-700 focus:border-rice-gold'
-                    }`}
-                  />
-                  {errors.lastName && (
-                    <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="email" 
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
-                    errors.email 
-                      ? 'border-red-500 focus:border-red-500' 
-                      : 'border-gray-700 focus:border-rice-gold'
-                  }`}
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Phone (Optional)</label>
-                <input 
-                  type="tel" 
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="+233 54 288 0528"
-                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 text-white ${
-                    errors.phone 
-                      ? 'border-red-500 focus:border-red-500' 
-                      : 'border-gray-700 focus:border-rice-gold'
-                  }`}
-                />
-                {errors.phone && (
-                  <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Subject</label>
-                <select 
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-rice-gold transition duration-300 text-white"
+
+        <div className="grid lg:grid-cols-5 gap-10">
+
+          {/* Left: Contact Info */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Contact Items */}
+            <div className="space-y-4">
+              {contactInfo.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 p-5 rounded-2xl bg-white/05 border border-white/08 hover:bg-white/08 transition-colors duration-200"
                 >
-                  <option>General Inquiry</option>
-                  <option>Product Information</option>
-                  <option>Bulk Order</option>
-                  <option>Partnership</option>
-                  <option>Other</option>
-                </select>
+                  <div className="w-10 h-10 rounded-xl bg-[var(--gold-muted)] flex items-center justify-center text-[var(--gold-dark)] flex-shrink-0">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-xs text-white/40 uppercase tracking-wider font-medium mb-1">{item.label}</p>
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        className="text-white/90 text-sm font-medium hover:text-[var(--gold-light)] transition-colors"
+                      >
+                        {item.value}
+                      </a>
+                    ) : (
+                      <p className="text-white/90 text-sm font-medium">{item.value}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Business Hours */}
+            <div className="p-5 rounded-2xl bg-white/05 border border-white/08">
+              <h4 className="text-sm font-semibold text-white/80 uppercase tracking-wider mb-4">
+                Business Hours
+              </h4>
+              <div className="space-y-2.5">
+                {hours.map((h, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <span className="text-sm text-white/50">{h.day}</span>
+                    <span className={`text-sm font-medium ${h.time === 'Closed' ? 'text-red-400' : 'text-[var(--gold-light)]'}`}>
+                      {h.time}
+                    </span>
+                  </div>
+                ))}
               </div>
-              
+            </div>
+
+            {/* WhatsApp CTA */}
+            <a
+              href="https://wa.me/233542880528"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-5 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/15 transition-all duration-200 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-[#25D366] flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.85L.057 23.571a.5.5 0 00.613.614l5.782-1.472A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.686-.5-5.228-1.374l-.375-.213-3.885.99.999-3.8-.226-.384A10 10 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                </svg>
+              </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Message <span className="text-red-500">*</span>
-                  <span className="text-gray-400 text-xs ml-2">
-                    ({formData.message.length}/1000 characters)
-                  </span>
-                </label>
-                <textarea 
-                  rows={6} 
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  placeholder="Please provide details about your inquiry..."
-                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg focus:outline-none transition duration-300 resize-none text-white ${
-                    errors.message 
-                      ? 'border-red-500 focus:border-red-500' 
-                      : 'border-gray-700 focus:border-rice-gold'
-                  }`}
-                ></textarea>
-                {errors.message && (
-                  <p className="text-red-500 text-sm mt-1">{errors.message}</p>
-                )}
+                <p className="text-sm font-semibold text-white group-hover:text-[#25D366] transition-colors">
+                  Chat on WhatsApp
+                </p>
+                <p className="text-xs text-white/40">Usually responds in minutes</p>
               </div>
-              
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-rice-gold hover:bg-yellow-600 text-white px-8 py-4 rounded-lg font-semibold transition duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              <svg className="w-4 h-4 text-white/30 ml-auto group-hover:text-[#25D366] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          {/* Right: Form */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-3xl p-8 md:p-10 shadow-premium">
+              <h3
+                className="text-2xl font-bold text-[var(--charcoal)] mb-6"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
-                {isSubmitting ? 'Sending...' : 'Send Message'}
-              </button>
-            </form>
+                Send Us a Message
+              </h3>
+
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-2">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      placeholder="Kwame"
+                      className={inputClass('firstName')}
+                    />
+                    {errors.firstName && <p className="text-red-500 text-xs mt-1.5">{errors.firstName}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-2">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      placeholder="Mensah"
+                      className={inputClass('lastName')}
+                    />
+                    {errors.lastName && <p className="text-red-500 text-xs mt-1.5">{errors.lastName}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-2">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="kwame@example.com"
+                    className={inputClass('email')}
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email}</p>}
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-2">
+                      Phone <span className="text-[var(--charcoal-muted)]/50 normal-case font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+233 54 288 0528"
+                      className={inputClass('phone')}
+                    />
+                    {errors.phone && <p className="text-red-500 text-xs mt-1.5">{errors.phone}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-2">
+                      Subject
+                    </label>
+                    <select
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--cream-dark)] focus:ring-2 focus:ring-[var(--gold-muted)] focus:border-[var(--gold)] text-[var(--charcoal)] bg-[var(--off-white)] text-sm outline-none transition-all duration-200"
+                    >
+                      <option>General Inquiry</option>
+                      <option>Product Information</option>
+                      <option>Bulk Order</option>
+                      <option>Partnership</option>
+                      <option>Complaint</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider mb-2">
+                    Message <span className="text-red-500">*</span>
+                    <span className="text-[var(--charcoal-muted)]/50 normal-case font-normal ml-2">
+                      ({formData.message.length}/1000)
+                    </span>
+                  </label>
+                  <textarea
+                    rows={5}
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    placeholder="Tell us what you need — we're happy to help…"
+                    className={`${inputClass('message')} resize-none`}
+                  />
+                  {errors.message && <p className="text-red-500 text-xs mt-1.5">{errors.message}</p>}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary w-full !rounded-xl !py-4 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                        style={{ animation: 'spin 0.8s linear infinite' }}
+                      />
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      Send Message
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

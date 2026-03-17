@@ -1,15 +1,23 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Inter } from 'next/font/google';
+import { Inter, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CartProvider } from '@/contexts/CartContext'
 import CartModal from '@/components/CartModal'
-// import Head from 'next/head';
 
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
-
-const inter = Inter({ subsets: ['latin'] });
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -168,16 +176,13 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <link
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
           rel="stylesheet"
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
+        {/* Fonts loaded via next/font — no extra link needed */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -187,11 +192,18 @@ export default function RootLayout({
         <Toaster
           position="top-right"
           toastOptions={{
-            className: 'bg-white text-gray-800 shadow-lg',
             style: {
-              fontFamily: 'Inter, sans-serif',
-              fontSize: '16px',
+              fontFamily: 'var(--font-inter, Inter, sans-serif)',
+              fontSize: '14px',
               padding: '12px 16px',
+              borderRadius: '12px',
+              background: '#ffffff',
+              color: '#1A1A1A',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)',
+              border: '1px solid rgba(201,168,76,0.15)',
+            },
+            success: {
+              iconTheme: { primary: '#C9A84C', secondary: '#ffffff' },
             },
           }}
         />

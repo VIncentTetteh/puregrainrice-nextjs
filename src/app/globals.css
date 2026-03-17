@@ -1,128 +1,658 @@
 @import "tailwindcss";
 
-/* Custom color variables */
+/* ============================================
+   PUREPLATTER FOODS LTD — DESIGN SYSTEM
+   Premium Ghanaian Food E-commerce Platform
+   ============================================ */
+
 :root {
-  --rice-gold: #D4AF37;
-  --ricecream: #F5F5DC;
+  /* Brand Colors */
+  --gold: #C9A84C;
+  --gold-light: #E8C96A;
+  --gold-dark: #A8872E;
+  --gold-muted: #F5E6C0;
+
+  --cream: #FAF6EE;
+  --cream-dark: #F0E8D6;
+
+  --forest: #1E3D2F;
+  --forest-light: #2A5240;
+  --forest-muted: #E8F4EC;
+
+  --charcoal: #1A1A1A;
+  --charcoal-light: #2C2C2C;
+  --charcoal-muted: #6B6B6B;
+
   --ghana-red: #CE1126;
-  --ghana-gold: #FCD116;
   --ghana-green: #006B3F;
+  --ghana-gold: #FCD116;
+
+  --white: #FFFFFF;
+  --off-white: #FDFCFA;
+
+  /* Typography Scale */
+  --font-display: var(--font-playfair, 'Playfair Display', Georgia, serif);
+  --font-body: var(--font-inter, 'Inter', system-ui, sans-serif);
+
+  /* Spacing */
+  --section-py: 6rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-gold: 0 4px 24px rgba(201,168,76,0.25);
+  --shadow-gold-lg: 0 8px 40px rgba(201,168,76,0.35);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
 }
 
+/* ============================================
+   BASE STYLES
+   ============================================ */
 @layer base {
-  body {
-    font-family: 'Inter', sans-serif;
-  }
-
   html {
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--charcoal);
+    background-color: var(--off-white);
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background-color: var(--gold-muted);
+    color: var(--charcoal);
   }
 }
 
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-dark);
+}
+
+/* ============================================
+   FOCUS STYLES
+   ============================================ */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
 @layer utilities {
-  .animation-delay-200 {
-    animation-delay: 0.2s;
+  .font-display {
+    font-family: var(--font-display);
   }
 
-  .animation-delay-400 {
-    animation-delay: 0.4s;
+  .font-body {
+    font-family: var(--font-body);
   }
 
+  /* Text Gradient */
+  .text-gradient-gold {
+    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 50%, var(--gold-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-forest {
+    background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ============================================
+     COLOR UTILITIES
+     ============================================ */
+  .bg-gold { background-color: var(--gold); }
+  .bg-gold-light { background-color: var(--gold-light); }
+  .bg-gold-dark { background-color: var(--gold-dark); }
+  .bg-gold-muted { background-color: var(--gold-muted); }
+  .bg-cream { background-color: var(--cream); }
+  .bg-cream-dark { background-color: var(--cream-dark); }
+  .bg-forest { background-color: var(--forest); }
+  .bg-forest-light { background-color: var(--forest-light); }
+  .bg-forest-muted { background-color: var(--forest-muted); }
+  .bg-charcoal { background-color: var(--charcoal); }
+  .bg-charcoal-light { background-color: var(--charcoal-light); }
+  .bg-off-white { background-color: var(--off-white); }
+
+  .text-gold { color: var(--gold); }
+  .text-gold-light { color: var(--gold-light); }
+  .text-gold-dark { color: var(--gold-dark); }
+  .text-forest { color: var(--forest); }
+  .text-charcoal { color: var(--charcoal); }
+  .text-charcoal-muted { color: var(--charcoal-muted); }
+  .text-cream { color: var(--cream); }
+
+  .border-gold { border-color: var(--gold); }
+  .border-gold-muted { border-color: var(--gold-muted); }
+  .border-forest { border-color: var(--forest); }
+
+  /* Legacy compat */
+  .text-rice-gold { color: var(--gold); }
+  .bg-rice-gold { background-color: var(--gold); }
+  .bg-ghana-green { background-color: var(--ghana-green); }
+  .text-ghana-green { color: var(--ghana-green); }
+  .bg-ghana-red { background-color: var(--ghana-red); }
+  .text-ghana-red { color: var(--ghana-red); }
+
+  /* ============================================
+     GLASS MORPHISM
+     ============================================ */
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dark {
+    background: rgba(26, 26, 26, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-gold {
+    background: rgba(201, 168, 76, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(201, 168, 76, 0.25);
+  }
+
+  /* ============================================
+     SHADOW UTILITIES
+     ============================================ */
+  .shadow-gold { box-shadow: var(--shadow-gold); }
+  .shadow-gold-lg { box-shadow: var(--shadow-gold-lg); }
+  .shadow-premium { box-shadow: var(--shadow-lg); }
+
+  /* ============================================
+     BUTTON STYLES
+     ============================================ */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-gold);
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold-lg);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: transparent;
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--gold);
+    transition: all var(--transition-base);
+    letter-spacing: 0.01em;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: var(--gold);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    color: var(--charcoal-muted);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    transition: all var(--transition-base);
+    cursor: pointer;
+  }
+
+  .btn-ghost:hover {
+    background: var(--cream);
+    color: var(--charcoal);
+  }
+
+  /* ============================================
+     SECTION UTILITIES
+     ============================================ */
+  .section-py {
+    padding-top: var(--section-py);
+    padding-bottom: var(--section-py);
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 700;
+    color: var(--charcoal);
+    line-height: 1.15;
+  }
+
+  .section-subheading {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: var(--charcoal-muted);
+    line-height: 1.7;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .gold-divider {
+    width: 4rem;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+    border-radius: var(--radius-full);
+    margin: 0 auto;
+  }
+
+  /* ============================================
+     CARD UTILITIES
+     ============================================ */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(201, 168, 76, 0.08);
+    transition: all var(--transition-base);
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(201, 168, 76, 0.2);
+  }
+
+  .card-gold {
+    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 60%, var(--gold-light) 100%);
+    border-radius: var(--radius-lg);
+    color: white;
+  }
+
+  .card-forest {
+    background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+    border-radius: var(--radius-lg);
+    color: white;
+  }
+
+  .card-charcoal {
+    background: linear-gradient(135deg, var(--charcoal) 0%, var(--charcoal-light) 100%);
+    border-radius: var(--radius-lg);
+    color: white;
+  }
+
+  /* ============================================
+     ANIMATIONS
+     ============================================ */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.7s ease-out forwards;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.7s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.7s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.7s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-pulse-gold {
+    animation: pulseGold 2s ease-in-out infinite;
+  }
+
+  .animation-delay-100 { animation-delay: 0.1s; }
+  .animation-delay-200 { animation-delay: 0.2s; }
+  .animation-delay-300 { animation-delay: 0.3s; }
+  .animation-delay-400 { animation-delay: 0.4s; }
+  .animation-delay-500 { animation-delay: 0.5s; }
+  .animation-delay-600 { animation-delay: 0.6s; }
+  .animation-delay-700 { animation-delay: 0.7s; }
+  .animation-delay-800 { animation-delay: 0.8s; }
+
+  /* ============================================
+     HOVER EFFECTS
+     ============================================ */
   .hover-lift {
-    transition: transform 0.3s ease;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
   }
 
   .hover-lift:hover {
-    transform: translateY(-5px);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
   }
 
-  /* Custom color utilities */
-  .bg-rice-gold { background-color: var(--rice-gold); }
-  .bg-ricecream { background-color: var(--ricecream); }
-  .bg-ghana-red { background-color: var(--ghana-red); }
-  .bg-ghana-gold { background-color: var(--ghana-gold); }
-  .bg-ghana-green { background-color: var(--ghana-green); }
-
-  .text-rice-gold { color: var(--rice-gold); }
-  .text-ricecream { color: var(--ricecream); }
-  .text-ghana-red { color: var(--ghana-red); }
-  .text-ghana-gold { color: var(--ghana-gold); }
-  .text-ghana-green { color: var(--ghana-green); }
-
-  /* Custom animation utilities */
-  .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out;
+  .hover-glow:hover {
+    box-shadow: var(--shadow-gold-lg);
   }
 
-  .animate-bounce {
-    animation: bounce 1s infinite;
+  /* ============================================
+     BADGE UTILITIES
+     ============================================ */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
 
-  .animate-typing {
-    animation: typing 2s steps(14, end) forwards;
-    white-space: nowrap;
+  .badge-gold {
+    background: var(--gold-muted);
+    color: var(--gold-dark);
+  }
+
+  .badge-forest {
+    background: var(--forest-muted);
+    color: var(--forest);
+  }
+
+  .badge-red {
+    background: #FEE2E2;
+    color: var(--ghana-red);
+  }
+
+  /* ============================================
+     DIVIDER
+     ============================================ */
+  .divider-wavy {
+    width: 100%;
     overflow: hidden;
-    border-right: 4px solid var(--rice-gold);
+    line-height: 0;
   }
 
-  .animate-blink {
-    animation: blink 0.8s step-end infinite;
+  /* ============================================
+     STAT CARD
+     ============================================ */
+  .stat-card {
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--gold);
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--charcoal-muted);
+    margin-top: 0.375rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  /* ============================================
+     PRICE DISPLAY
+     ============================================ */
+  .price-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--charcoal);
+  }
+
+  .price-currency {
+    font-size: 1.25rem;
+    vertical-align: super;
+    color: var(--gold-dark);
+  }
+
+  /* ============================================
+     FEATURE CHECK LIST
+     ============================================ */
+  .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.5rem 0;
+    color: var(--charcoal-muted);
+    font-size: 0.9375rem;
+  }
+
+  .feature-list li::before {
+    content: '';
+    display: block;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    background-size: 12px;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin-top: 2px;
   }
 }
 
-/* Custom keyframes */
+/* ============================================
+   KEYFRAMES
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes fadeInUp {
-  0% {
+  from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(24px);
   }
-  100% {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes typing {
+@keyframes fadeInDown {
   from {
-    width: 0;
+    opacity: 0;
+    transform: translateY(-24px);
   }
   to {
-    width: 100%;
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes blink {
-  0%, 100% {
-    border-color: transparent;
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
   }
-  50% {
-    border-color: var(--rice-gold);
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--rice-gold);
-  border-radius: 4px;
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #B8941F;
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(201, 168, 76, 0); }
 }
 
-/* Focus styles */
-button:focus,
-input:focus,
-textarea:focus,
-select:focus {
-  outline: 2px solid var(--rice-gold);
-  outline-offset: 2px;
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scrollDown {
+  0% { transform: translateY(0); opacity: 1; }
+  75% { transform: translateY(8px); opacity: 0; }
+  76% { transform: translateY(-8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+@media (max-width: 640px) {
+  :root {
+    --section-py: 4rem;
+  }
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   PRODUCT IMAGE OVERLAY
+   ============================================ */
+.product-image-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-image-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.product-image-overlay:hover::after {
+  opacity: 1;
 }

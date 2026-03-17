@@ -14,7 +14,7 @@ import ReviewsCarousel from '@/components/ReviewsCarousel';
 export default function Home() {
   return (
     <LayoutWrapper>
-      <div className="bg-ricecream text-gray-800">
+      <div className="bg-[var(--off-white)] text-[var(--charcoal)]">
         <Hero />
 <About />
         <Products />
