@@ -126,30 +126,26 @@ export default function CustomersPage() {
 
         {/* Nav */}
         <nav className="flex-1 px-4 py-6 space-y-1">
-          <button
-            onClick={() => router.push('/admin')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Orders
-          </button>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm bg-[var(--gold)]/20 text-[var(--gold)]">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Customers
-          </div>
-          <button
-            onClick={() => router.push('/')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            View Store
-          </button>
+          {[
+            { label: 'Orders', icon: '📦', active: false, href: '/admin' },
+            { label: 'Customers', icon: '👥', active: true, href: '/admin/customers' },
+            { label: 'Products', icon: '🌾', active: false, href: '/admin/products' },
+            { label: 'Promotions', icon: '🎟️', active: false, href: '/admin/promotions' },
+            { label: 'View Store', icon: '🏪', active: false, href: '/' },
+          ].map(item => (
+            <button
+              key={item.label}
+              onClick={() => router.push(item.href)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                item.active
+                  ? 'bg-[var(--gold)]/20 text-[var(--gold)]'
+                  : 'text-white/60 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
         </nav>
 
         {/* Admin info */}

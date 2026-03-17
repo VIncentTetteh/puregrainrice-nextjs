@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useEffect, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
-import Sidebar from '@/components/Sidebar';
 import toast from 'react-hot-toast';
 
 interface LayoutWrapperProps {
@@ -17,7 +16,7 @@ interface CartItem {
 }
 
 const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
-  const { user, loading, shouldShowCart, setShouldShowCart } = useAuth();
+  const { user, shouldShowCart, setShouldShowCart } = useAuth();
   const { setIsCartOpen } = useCart();
 
   // Show cart after login if user had items
@@ -53,32 +52,10 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
     checkCartAndShow();
   }, [checkCartAndShow]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rice-gold mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
-      {user ? (
-        <>
-          <Sidebar />
-          <div className="lg:ml-64" key="auth-layout">
-            {children}
-          </div>
-        </>
-      ) : (
-        <>
-          <Navigation />
-          {children}
-        </>
-      )}
+      <Navigation />
+      {children}
     </>
   );
 };
