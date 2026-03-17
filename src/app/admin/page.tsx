@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<SaleCustomer | null>(null);
   const [manualName, setManualName] = useState('');
   const [manualPhone, setManualPhone] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
   const [saleItems, setSaleItems] = useState<SaleItem[]>([{ product_id: '', weight_kg: '', quantity: 1, unit_price: 0 }]);
   const [saleNotes, setSaleNotes] = useState('');
   const [saleSubmitting, setSaleSubmitting] = useState(false);
@@ -100,6 +101,7 @@ export default function AdminPage() {
     setCustomerSearch('');
     setManualName('');
     setManualPhone('');
+    setManualEmail('');
     setSaleNotes('');
     const [custRes, prodRes] = await Promise.all([
       fetch('/api/admin/customers'),
@@ -133,7 +135,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           customer_id: selectedCustomer?.id || null,
           customer_name: selectedCustomer?.full_name || manualName || null,
-          customer_email: selectedCustomer?.email || null,
+          customer_email: selectedCustomer?.email || manualEmail || null,
           customer_phone: selectedCustomer?.phone || selectedCustomer?.whatsapp_number || manualPhone || null,
           delivery_city: selectedCustomer?.preferred_delivery_city || null,
           items: saleItems,
@@ -575,6 +577,13 @@ export default function AdminPage() {
                         onChange={e => setManualPhone(e.target.value)}
                         placeholder="Phone (optional)"
                         className="px-3 py-2 text-sm rounded-xl border border-[var(--cream-dark)] bg-[var(--cream)] text-[var(--charcoal)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)]/30 focus:border-[var(--gold)]"
+                      />
+                      <input
+                        type="email"
+                        value={manualEmail}
+                        onChange={e => setManualEmail(e.target.value)}
+                        placeholder="Email (optional)"
+                        className="col-span-2 px-3 py-2 text-sm rounded-xl border border-[var(--cream-dark)] bg-[var(--cream)] text-[var(--charcoal)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)]/30 focus:border-[var(--gold)]"
                       />
                     </div>
                   </div>

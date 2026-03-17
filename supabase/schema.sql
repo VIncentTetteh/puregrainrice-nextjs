@@ -96,16 +96,38 @@ alter table public.orders add column if not exists updated_at      timestamptz d
 
 alter table public.orders enable row level security;
 
-drop policy if exists "Users can view own orders"   on public.orders;
-drop policy if exists "Users can insert own orders" on public.orders;
+-- Helper: returns true when the calling user is a known admin
+create or replace function public.is_admin()
+returns boolean language sql security definer stable as $$
+  select auth.jwt() ->> 'email' = any(array[
+    'puregrainrice@gmail.com',
+    'vincentchrisbone@gmail.com'
+  ])
+$$;
+
+drop policy if exists "Users can view own orders"    on public.orders;
+drop policy if exists "Users can insert own orders"  on public.orders;
+drop policy if exists "Admins can view all orders"   on public.orders;
+drop policy if exists "Admins can insert orders"     on public.orders;
+drop policy if exists "Admins can update orders"     on public.orders;
 
 create policy "Users can view own orders"
   on public.orders for select
-  using (user_id = auth.uid());
+  using (user_id = auth.uid() or public.is_admin());
 
 create policy "Users can insert own orders"
   on public.orders for insert
   with check (user_id = auth.uid());
+
+-- Admins may insert orders with any user_id (including null for walk-in customers)
+create policy "Admins can insert orders"
+  on public.orders for insert
+  with check (public.is_admin());
+
+-- Admins may update any order (status changes, notes, tracking)
+create policy "Admins can update orders"
+  on public.orders for update
+  using (public.is_admin());
 
 -- ============================================================
 -- ORDER ITEMS TABLE
@@ -125,10 +147,13 @@ alter table public.order_items enable row level security;
 
 drop policy if exists "Users can view own order items"   on public.order_items;
 drop policy if exists "Users can insert own order items" on public.order_items;
+drop policy if exists "Admins can view all order items"  on public.order_items;
+drop policy if exists "Admins can insert order items"    on public.order_items;
 
 create policy "Users can view own order items"
   on public.order_items for select
   using (
+    public.is_admin() or
     exists (
       select 1 from public.orders o
       where o.id = order_items.order_id and o.user_id = auth.uid()
@@ -143,6 +168,11 @@ create policy "Users can insert own order items"
       where o.id = order_items.order_id and o.user_id = auth.uid()
     )
   );
+
+-- Admins may insert order items for any order (including in-person sales)
+create policy "Admins can insert order items"
+  on public.order_items for insert
+  with check (public.is_admin());
 
 -- ============================================================
 -- DELIVERY CODES TABLE

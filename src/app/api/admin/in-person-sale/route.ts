@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
     .from('orders')
     .insert({
       user_id: customer_id || null,
-      user_email: customer_email || null,
-      user_full_name: customer_name || null,
+      user_email: customer_email || 'walk-in@inperson.sale',
+      user_full_name: customer_name || 'Walk-in Customer',
       user_phone: customer_phone || null,
       delivery_city: delivery_city || null,
       total_amount: Number(total_amount),
