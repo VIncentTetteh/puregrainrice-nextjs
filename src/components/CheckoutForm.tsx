@@ -80,6 +80,13 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
   const [isPaystackLoaded, setIsPaystackLoaded] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
 
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState<{
+    code: string; discount_type: string; discount_value: number; discount_amount: number; promo_id: string;
+  } | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+
 
   useEffect(() => {
     const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
@@ -158,6 +165,41 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
     if (validate(step1Fields)) setStep(2);
   };
 
+  const finalAmount = promoApplied
+    ? Math.max(0, totalAmount - promoApplied.discount_amount)
+    : totalAmount;
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoError('');
+    setPromoLoading(true);
+    try {
+      const res = await fetch('/api/promotions/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim(), order_amount: totalAmount }),
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setPromoApplied(data);
+        toast.success(`Promo applied! You save ₵${data.discount_amount.toFixed(2)}`);
+      } else {
+        setPromoError(data.error || 'Invalid promo code');
+        setPromoApplied(null);
+      }
+    } catch {
+      setPromoError('Failed to validate promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const removePromo = () => {
+    setPromoApplied(null);
+    setPromoCode('');
+    setPromoError('');
+  };
+
   const handlePayment = () => {
     const allTouched = Object.keys(details).reduce((a, k) => ({ ...a, [k]: true }), {});
     setTouched(allTouched);
@@ -171,7 +213,7 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
       const handler = window.PaystackPop.setup({
         key,
         email: details.email,
-        amount: Math.round(totalAmount * 100),
+        amount: Math.round(finalAmount * 100),
         currency: 'GHS',
         ref: 'PG_' + Date.now(),
         metadata: {
@@ -310,11 +352,58 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
               </div>
             ))}
           </div>
-          <div className="flex justify-between items-center border-t border-[var(--cream-dark)] pt-3">
-            <span className="font-bold text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-display)' }}>Total</span>
-            <span className="text-lg font-bold text-[var(--gold-dark)]" style={{ fontFamily: 'var(--font-display)' }}>
-              ₵{totalAmount.toFixed(2)}
-            </span>
+          {/* Promo code input */}
+          {!promoApplied ? (
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
+                onKeyDown={e => e.key === 'Enter' && applyPromo()}
+                placeholder="Promo code"
+                className="flex-1 px-3 py-2 text-sm rounded-xl border border-[var(--cream-dark)] bg-white text-[var(--charcoal)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)]/30 focus:border-[var(--gold)] uppercase placeholder:normal-case placeholder:text-[var(--charcoal-muted)]/50"
+              />
+              <button
+                onClick={applyPromo}
+                disabled={promoLoading || !promoCode.trim()}
+                className="px-4 py-2 rounded-xl bg-[var(--gold)] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity flex-shrink-0"
+              >
+                {promoLoading ? '…' : 'Apply'}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-green-50 border border-green-200">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-sm font-semibold text-green-700">{promoApplied.code}</span>
+                <span className="text-xs text-green-600">−₵{promoApplied.discount_amount.toFixed(2)}</span>
+              </div>
+              <button onClick={removePromo} className="text-xs text-green-600 hover:text-red-500 transition-colors font-medium">Remove</button>
+            </div>
+          )}
+          {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+
+          <div className="border-t border-[var(--cream-dark)] pt-3 mt-3 space-y-1">
+            {promoApplied && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--charcoal-muted)]">Subtotal</span>
+                  <span className="text-[var(--charcoal)]">₵{totalAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-600 font-medium">Discount ({promoApplied.code})</span>
+                  <span className="text-green-600 font-semibold">−₵{promoApplied.discount_amount.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-[var(--charcoal)]" style={{ fontFamily: 'var(--font-display)' }}>Total</span>
+              <span className="text-lg font-bold text-[var(--gold-dark)]" style={{ fontFamily: 'var(--font-display)' }}>
+                ₵{finalAmount.toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -472,7 +561,7 @@ export default function CheckoutForm({ onBack, onOrderSuccess }: CheckoutFormPro
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    Pay GH₵{totalAmount.toFixed(2)} securely
+                    Pay GH₵{finalAmount.toFixed(2)} securely
                   </>
                 )}
               </button>
