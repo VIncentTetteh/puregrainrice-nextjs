@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       delivery_city: delivery_city || 'In-Person',
       total_amount: Number(total_amount),
       status: 'delivered',
-      payment_status: 'paid',
+      payment_status: 'success',
       payment_reference: paymentRef,
       admin_notes: adminNotes,
     })

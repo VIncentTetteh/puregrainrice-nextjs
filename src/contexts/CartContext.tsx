@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 
@@ -9,7 +9,6 @@ export interface CartItem {
   price: number;
   quantity: number;
   weight_kg: string;
-  
 }
 
 interface CartContextType {
@@ -31,10 +30,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const { user } = useAuth();
   const supabase = createClient();
+  // Track whether we've already done the one-time login sync
+  const syncedUserRef = useRef<string | null>(null);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -42,172 +41,129 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (savedCart) {
       try {
         setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
+      } catch {
+        localStorage.removeItem('pureplatter_cart');
       }
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Persist cart to localStorage on every change
   useEffect(() => {
     localStorage.setItem('pureplatter_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Sync cart with Supabase when user logs in
-  const syncCartToSupabase = useCallback(async () => {
-    if (!user || isSyncing) return;
-    setIsSyncing(true);
-    try {
-      const { data: existingItems } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', user.id);
+  // One-time sync when user logs in — do NOT re-run on cart changes
+  useEffect(() => {
+    if (!user) {
+      syncedUserRef.current = null;
+      return;
+    }
+    // Already synced for this user session
+    if (syncedUserRef.current === user.id) return;
+    syncedUserRef.current = user.id;
 
-      let finalCart = [...cart];
-      if (cart.length === 0 && existingItems && existingItems.length > 0) {
-        finalCart = existingItems.map(dbItem => ({
-          product_id: dbItem.product_id,
-          price: dbItem.price,
-          quantity: dbItem.quantity,
-          weight_kg: dbItem.weight_kg,
-        }));
-      } else if (cart.length > 0) {
-        await supabase
+    const syncOnLogin = async () => {
+      try {
+        const { data: dbItems } = await supabase
           .from('cart_items')
-          .delete()
+          .select('*')
           .eq('user_id', user.id);
 
-        const cartItemsToInsert = cart.map(item => ({
-          user_id: user.id,
-          product_id: item.product_id,
-          price: item.price,
-          quantity: item.quantity,
-          weight_kg: item.weight_kg
-        }));
+        // Read the latest local cart directly from localStorage to avoid stale closure
+        const raw = localStorage.getItem('pureplatter_cart');
+        const localCart: CartItem[] = raw ? JSON.parse(raw) : [];
 
-        await supabase
-          .from('cart_items')
-          .insert(cartItemsToInsert);
-
-        finalCart = cart;
+        if (localCart.length > 0) {
+          // Push local cart to DB (replace whatever was there)
+          await supabase.from('cart_items').delete().eq('user_id', user.id);
+          await supabase.from('cart_items').insert(
+            localCart.map(item => ({
+              user_id: user.id,
+              product_id: item.product_id,
+              price: item.price,
+              quantity: item.quantity,
+              weight_kg: item.weight_kg,
+            }))
+          );
+        } else if (dbItems && dbItems.length > 0) {
+          // No local cart — load from DB
+          const loaded = dbItems.map(item => ({
+            product_id: item.product_id,
+            price: item.price,
+            quantity: item.quantity,
+            weight_kg: item.weight_kg,
+          }));
+          setCart(loaded);
+        }
+      } catch (err) {
+        console.error('Error syncing cart on login:', err);
       }
+    };
 
-      setCart(finalCart);
-      setLastSyncTime(Date.now());
-    } catch (error) {
-      console.error('Error syncing cart to Supabase:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [user, isSyncing, supabase, cart]);
+    syncOnLogin();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only fires when user ID changes (login / logout)
 
-  const loadCartFromSupabase = useCallback(async () => {
-    if (!user || isSyncing) return;
-    setIsSyncing(true);
+  const syncCart = useCallback(async () => {
+    if (!user) return;
     try {
-      const { data: cartItems } = await supabase
+      const { data: dbItems } = await supabase
         .from('cart_items')
         .select('*')
         .eq('user_id', user.id);
-
-      if (cartItems && cartItems.length > 0) {
-        const loadedCart = cartItems.map(item => ({
+      if (dbItems && dbItems.length > 0) {
+        setCart(dbItems.map(item => ({
           product_id: item.product_id,
           price: item.price,
           quantity: item.quantity,
-          weight_kg: item.product_weight_kg,
-        }));
-        setCart(loadedCart);
+          weight_kg: item.weight_kg,
+        })));
       }
-      setLastSyncTime(Date.now());
-    } catch (error) {
-      console.error('Error loading cart from Supabase:', error);
-    } finally {
-      setIsSyncing(false);
+    } catch (err) {
+      console.error('Error in syncCart:', err);
     }
-  }, [user, isSyncing, supabase]);
-
-  useEffect(() => {
-    if (user && !isSyncing) {
-      const now = Date.now();
-      if (now - lastSyncTime > 1000) {
-        if (cart.length > 0) {
-          syncCartToSupabase();
-        } else {
-          loadCartFromSupabase();
-        }
-        setLastSyncTime(now);
-      }
-    }
-  }, [user, isSyncing, lastSyncTime, cart.length, syncCartToSupabase, loadCartFromSupabase]);
-
-  const syncCart = async () => {
-    if (user) {
-      await syncCartToSupabase();
-    }
-  };
+  }, [user, supabase]);
 
   const addToCart = useCallback(async (productId: string, price: number, weight_kg: string, quantity: number) => {
-    setCart(prevCart => {
-      const newCart = [...prevCart];
-      const existingItem = newCart.find(item => item.product_id === productId);
-
-      if (existingItem) {
-        existingItem.quantity += 1;
-      } else {
-        const newItem: CartItem = {
-          product_id: productId,
-          price: price,
-          quantity: quantity,
-          weight_kg: weight_kg,
-        };
-        newCart.push(newItem);
+    setCart(prev => {
+      const existing = prev.find(i => i.product_id === productId);
+      if (existing) {
+        return prev.map(i =>
+          i.product_id === productId ? { ...i, quantity: i.quantity + quantity } : i
+        );
       }
-
-      return newCart;
+      return [...prev, { product_id: productId, price, quantity, weight_kg }];
     });
 
-    // If user is logged in, also update Supabase with the correct quantity
     if (user) {
       try {
-        // Check if item exists first
-        const { data: existingItem } = await supabase
+        const { data: existing } = await supabase
           .from('cart_items')
           .select('quantity')
           .eq('user_id', user.id)
           .eq('product_id', productId)
           .maybeSingle();
 
-        if (existingItem) {
-          // Update existing item by incrementing quantity
+        if (existing) {
           await supabase
             .from('cart_items')
-            .update({ quantity: existingItem.quantity + 1 })
+            .update({ quantity: existing.quantity + quantity })
             .eq('user_id', user.id)
             .eq('product_id', productId);
-            
         } else {
-          // Insert new item
           await supabase
             .from('cart_items')
-            .insert({
-              user_id: user.id,
-              product_id: productId,
-              price: price,
-              quantity: quantity,
-              weight_kg: weight_kg
-            });
+            .insert({ user_id: user.id, product_id: productId, price, quantity, weight_kg });
         }
-      } catch (error) {
-        console.error('Error updating cart in Supabase:', error);
+      } catch (err) {
+        console.error('Error updating cart in Supabase:', err);
       }
     }
   }, [user, supabase]);
 
   const removeFromCart = useCallback(async (productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.product_id !== productId));
+    setCart(prev => prev.filter(i => i.product_id !== productId));
 
-    // If user is logged in, also remove from Supabase
     if (user) {
       try {
         await supabase
@@ -215,8 +171,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           .delete()
           .eq('user_id', user.id)
           .eq('product_id', productId);
-      } catch (error) {
-        console.error('Error removing cart item from Supabase:', error);
+      } catch (err) {
+        console.error('Error removing cart item from Supabase:', err);
       }
     }
   }, [user, supabase]);
@@ -226,16 +182,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeFromCart(productId);
       return;
     }
-    
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.product_id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
+
+    setCart(prev =>
+      prev.map(i => i.product_id === productId ? { ...i, quantity: newQuantity } : i)
     );
 
-    // If user is logged in, also update Supabase
     if (user) {
       try {
         await supabase
@@ -243,8 +194,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           .update({ quantity: newQuantity })
           .eq('user_id', user.id)
           .eq('product_id', productId);
-      } catch (error) {
-        console.error('Error updating cart quantity in Supabase:', error);
+      } catch (err) {
+        console.error('Error updating cart quantity in Supabase:', err);
       }
     }
   }, [removeFromCart, user, supabase]);
@@ -253,44 +204,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart([]);
     localStorage.removeItem('pureplatter_cart');
 
-    // If user is logged in, also clear from Supabase
     if (user) {
       try {
-        await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', user.id);
-      } catch (error) {
-        console.error('Error clearing cart from Supabase:', error);
+        await supabase.from('cart_items').delete().eq('user_id', user.id);
+      } catch (err) {
+        console.error('Error clearing cart from Supabase:', err);
       }
     }
   }, [user, supabase]);
 
   const clearCartOnOrderSuccess = useCallback(() => {
-    // Force immediate clearing without database call since it's already handled in createOrder
     setCart([]);
     localStorage.removeItem('pureplatter_cart');
   }, []);
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  const value = {
-    cart,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    clearCart,
-    clearCartOnOrderSuccess,
-    totalItems,
-    totalAmount,
-    isCartOpen,
-    setIsCartOpen,
-    syncCart
-  };
+  const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={value}>
+    <CartContext.Provider value={{
+      cart,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      clearCartOnOrderSuccess,
+      totalItems,
+      totalAmount,
+      isCartOpen,
+      setIsCartOpen,
+      syncCart,
+    }}>
       {children}
     </CartContext.Provider>
   );
