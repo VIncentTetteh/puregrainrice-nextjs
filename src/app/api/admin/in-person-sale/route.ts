@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
     product_weight_kg: item.weight_kg || '',
     quantity: Number(item.quantity),
     unit_price: Number(item.unit_price),
-    total_price: Number(item.unit_price) * Number(item.quantity),
   }))
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
