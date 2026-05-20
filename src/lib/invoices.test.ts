@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import {
   buildInvoiceNumber,
   formatCurrency,
+  formatPdfCurrency,
   normalizeInvoicePayload,
 } from './invoices'
 
@@ -71,5 +72,9 @@ describe('invoice helpers', () => {
   it('formats invoice numbers and Ghanaian currency consistently', () => {
     assert.equal(buildInvoiceNumber(2026, 7), 'INV-2026-000007')
     assert.equal(formatCurrency(1511), 'GH₵1,511.00')
+  })
+
+  it('formats PDF currency with the GHS code so PDF fonts render it reliably', () => {
+    assert.equal(formatPdfCurrency(1511), 'GHS 1,511.00')
   })
 })

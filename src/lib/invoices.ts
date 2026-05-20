@@ -142,6 +142,15 @@ export function formatCurrency(amount: number): string {
   }).format(amount).replace('GH₵', 'GH₵')
 }
 
+export function formatPdfCurrency(amount: number): string {
+  const value = new Intl.NumberFormat('en-GH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
+
+  return `GHS ${value}`
+}
+
 export function getCompanyInvoiceProfile(): CompanyInvoiceProfile {
   return {
     name: process.env.COMPANY_NAME || 'PurePlatter Foods LTD',
