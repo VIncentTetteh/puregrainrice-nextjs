@@ -10,8 +10,8 @@ import {
 } from '@react-pdf/renderer'
 import path from 'path'
 import {
-  formatCurrency,
   formatInvoiceDate,
+  formatPdfCurrency,
   getCompanyInvoiceProfile,
   InvoiceForDocument,
 } from './invoices'
@@ -210,8 +210,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceForDocument }) {
                 {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
               </View>
               <Text style={styles.qtyCol}>{item.quantity}</Text>
-              <Text style={styles.priceCol}>{formatCurrency(Number(item.unit_price))}</Text>
-              <Text style={styles.totalCol}>{formatCurrency(Number(item.line_total))}</Text>
+              <Text style={styles.priceCol}>{formatPdfCurrency(Number(item.unit_price))}</Text>
+              <Text style={styles.totalCol}>{formatPdfCurrency(Number(item.line_total))}</Text>
             </View>
           ))}
         </View>
@@ -219,11 +219,11 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceForDocument }) {
         <View style={styles.totals}>
           <View style={styles.totalLine}>
             <Text>Subtotal</Text>
-            <Text>{formatCurrency(Number(invoice.subtotal))}</Text>
+            <Text>{formatPdfCurrency(Number(invoice.subtotal))}</Text>
           </View>
           <View style={styles.grandTotal}>
             <Text>Total</Text>
-            <Text>{formatCurrency(Number(invoice.total))}</Text>
+            <Text>{formatPdfCurrency(Number(invoice.total))}</Text>
           </View>
         </View>
 
