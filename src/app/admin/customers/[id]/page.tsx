@@ -205,6 +205,7 @@ export default function CustomerDetailPage() {
         <nav className="flex-1 px-4 py-6 space-y-1">
           {[
             { label: 'Orders', icon: '📦', href: '/admin' },
+            { label: 'Invoices', icon: '🧾', href: '/admin/invoices' },
             { label: 'Customers', icon: '👥', href: '/admin/customers', active: true },
             { label: 'Products', icon: '🌾', href: '/admin/products' },
             { label: 'Promotions', icon: '🎟️', href: '/admin/promotions' },

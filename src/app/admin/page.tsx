@@ -236,6 +236,7 @@ export default function AdminPage() {
         <nav className="flex-1 px-4 py-6 space-y-1">
           {[
             { label: 'Orders', icon: '📦', active: true, href: '/admin' },
+            { label: 'Invoices', icon: '🧾', active: false, href: '/admin/invoices' },
             { label: 'Customers', icon: '👥', active: false, href: '/admin/customers' },
             { label: 'Products', icon: '🌾', active: false, href: '/admin/products' },
             { label: 'Promotions', icon: '🎟️', active: false, href: '/admin/promotions' },
