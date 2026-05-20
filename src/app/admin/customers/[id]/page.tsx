@@ -206,6 +206,7 @@ export default function CustomerDetailPage() {
           {[
             { label: 'Orders', icon: '📦', href: '/admin' },
             { label: 'Invoices', icon: '🧾', href: '/admin/invoices' },
+            { label: 'Operations', icon: '🏭', href: '/admin/operations' },
             { label: 'Customers', icon: '👥', href: '/admin/customers', active: true },
             { label: 'Products', icon: '🌾', href: '/admin/products' },
             { label: 'Promotions', icon: '🎟️', href: '/admin/promotions' },
