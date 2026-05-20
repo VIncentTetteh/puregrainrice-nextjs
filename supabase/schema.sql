@@ -340,6 +340,188 @@ create trigger invoices_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============================================================
+-- FARMER SPONSORSHIP + OPERATIONS TABLES
+-- ============================================================
+create table if not exists public.farmers (
+  id          uuid primary key default gen_random_uuid(),
+  full_name   text not null,
+  phone       text,
+  location    text,
+  notes       text,
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists public.farming_seasons (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null unique,
+  start_date  date,
+  end_date    date,
+  status      text not null default 'active' check (status in ('planned','active','closed')),
+  notes       text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists public.farmer_season_accounts (
+  id          uuid primary key default gen_random_uuid(),
+  farmer_id   uuid not null references public.farmers(id) on delete cascade,
+  season_id   uuid not null references public.farming_seasons(id) on delete cascade,
+  notes       text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (farmer_id, season_id)
+);
+
+create table if not exists public.warehouses (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null unique,
+  location    text,
+  notes       text,
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists public.farmer_loans (
+  id          uuid primary key default gen_random_uuid(),
+  account_id  uuid not null references public.farmer_season_accounts(id) on delete cascade,
+  loan_date   date not null default current_date,
+  amount      numeric(12,2) not null check (amount > 0),
+  notes       text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists public.farmer_repayments (
+  id             uuid primary key default gen_random_uuid(),
+  account_id     uuid not null references public.farmer_season_accounts(id) on delete cascade,
+  warehouse_id   uuid not null references public.warehouses(id) on delete restrict,
+  repayment_date date not null default current_date,
+  bags           numeric(12,2) not null check (bags > 0),
+  price_per_bag  numeric(12,2) not null check (price_per_bag > 0),
+  total_amount   numeric(12,2) generated always as (bags * price_per_bag) stored,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create table if not exists public.warehouse_stock_movements (
+  id              uuid primary key default gen_random_uuid(),
+  warehouse_id    uuid not null references public.warehouses(id) on delete cascade,
+  season_id       uuid not null references public.farming_seasons(id) on delete cascade,
+  farmer_id       uuid references public.farmers(id) on delete set null,
+  source_type     text not null default 'manual'
+                    check (source_type in ('farmer_repayment','milling_batch','dispatch','manual')),
+  source_id       uuid,
+  stock_type      text not null check (stock_type in ('paddy','milled')),
+  movement_type   text not null check (movement_type in ('received','milled_out','milled_in','dispatched','adjustment')),
+  bags            numeric(12,2) not null,
+  movement_date   date not null default current_date,
+  notes           text,
+  created_at      timestamptz not null default now()
+);
+
+create table if not exists public.milling_batches (
+  id                         uuid primary key default gen_random_uuid(),
+  season_id                  uuid not null references public.farming_seasons(id) on delete cascade,
+  source_warehouse_id         uuid not null references public.warehouses(id) on delete restrict,
+  destination_warehouse_id    uuid not null references public.warehouses(id) on delete restrict,
+  milling_date               date not null default current_date,
+  paddy_bags                 numeric(12,2) not null check (paddy_bags > 0),
+  milled_bags                numeric(12,2) not null check (milled_bags >= 0),
+  notes                      text,
+  created_at                 timestamptz not null default now(),
+  updated_at                 timestamptz not null default now()
+);
+
+create table if not exists public.season_expenses (
+  id             uuid primary key default gen_random_uuid(),
+  season_id      uuid not null references public.farming_seasons(id) on delete cascade,
+  expense_date   date not null default current_date,
+  category       text not null check (category in ('milling','labour','transportation','other')),
+  description    text,
+  amount         numeric(12,2) not null check (amount > 0),
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create table if not exists public.rice_dispatches (
+  id            uuid primary key default gen_random_uuid(),
+  season_id     uuid not null references public.farming_seasons(id) on delete cascade,
+  warehouse_id  uuid not null references public.warehouses(id) on delete restrict,
+  dispatch_date date not null default current_date,
+  bags          numeric(12,2) not null check (bags > 0),
+  sale_amount   numeric(12,2),
+  order_id      uuid references public.orders(id) on delete set null,
+  invoice_id    uuid references public.invoices(id) on delete set null,
+  recipient     text,
+  notes         text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+alter table public.farmers enable row level security;
+alter table public.farming_seasons enable row level security;
+alter table public.farmer_season_accounts enable row level security;
+alter table public.warehouses enable row level security;
+alter table public.farmer_loans enable row level security;
+alter table public.farmer_repayments enable row level security;
+alter table public.warehouse_stock_movements enable row level security;
+alter table public.milling_batches enable row level security;
+alter table public.season_expenses enable row level security;
+alter table public.rice_dispatches enable row level security;
+
+drop trigger if exists farmers_updated_at on public.farmers;
+drop trigger if exists farming_seasons_updated_at on public.farming_seasons;
+drop trigger if exists farmer_season_accounts_updated_at on public.farmer_season_accounts;
+drop trigger if exists warehouses_updated_at on public.warehouses;
+drop trigger if exists farmer_loans_updated_at on public.farmer_loans;
+drop trigger if exists farmer_repayments_updated_at on public.farmer_repayments;
+drop trigger if exists milling_batches_updated_at on public.milling_batches;
+drop trigger if exists season_expenses_updated_at on public.season_expenses;
+drop trigger if exists rice_dispatches_updated_at on public.rice_dispatches;
+
+create trigger farmers_updated_at before update on public.farmers for each row execute function public.set_updated_at();
+create trigger farming_seasons_updated_at before update on public.farming_seasons for each row execute function public.set_updated_at();
+create trigger farmer_season_accounts_updated_at before update on public.farmer_season_accounts for each row execute function public.set_updated_at();
+create trigger warehouses_updated_at before update on public.warehouses for each row execute function public.set_updated_at();
+create trigger farmer_loans_updated_at before update on public.farmer_loans for each row execute function public.set_updated_at();
+create trigger farmer_repayments_updated_at before update on public.farmer_repayments for each row execute function public.set_updated_at();
+create trigger milling_batches_updated_at before update on public.milling_batches for each row execute function public.set_updated_at();
+create trigger season_expenses_updated_at before update on public.season_expenses for each row execute function public.set_updated_at();
+create trigger rice_dispatches_updated_at before update on public.rice_dispatches for each row execute function public.set_updated_at();
+
+do $$
+declare
+  table_name text;
+begin
+  foreach table_name in array array[
+    'farmers',
+    'farming_seasons',
+    'farmer_season_accounts',
+    'warehouses',
+    'farmer_loans',
+    'farmer_repayments',
+    'warehouse_stock_movements',
+    'milling_batches',
+    'season_expenses',
+    'rice_dispatches'
+  ]
+  loop
+    execute format('drop policy if exists "Admins can view %1$s" on public.%1$I', table_name);
+    execute format('drop policy if exists "Admins can insert %1$s" on public.%1$I', table_name);
+    execute format('drop policy if exists "Admins can update %1$s" on public.%1$I', table_name);
+    execute format('drop policy if exists "Admins can delete %1$s" on public.%1$I', table_name);
+    execute format('create policy "Admins can view %1$s" on public.%1$I for select using (public.is_admin())', table_name);
+    execute format('create policy "Admins can insert %1$s" on public.%1$I for insert with check (public.is_admin())', table_name);
+    execute format('create policy "Admins can update %1$s" on public.%1$I for update using (public.is_admin()) with check (public.is_admin())', table_name);
+    execute format('create policy "Admins can delete %1$s" on public.%1$I for delete using (public.is_admin())', table_name);
+  end loop;
+end $$;
+
+-- ============================================================
 -- Auto-increment promo used_count on order insert
 -- ============================================================
 create or replace function public.increment_promo_used_count()

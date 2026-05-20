@@ -191,6 +191,7 @@ export default function AdminPromotionsPage() {
           {[
             { label: 'Orders', icon: '📦', active: false, href: '/admin' },
             { label: 'Invoices', icon: '🧾', active: false, href: '/admin/invoices' },
+            { label: 'Operations', icon: '🏭', active: false, href: '/admin/operations' },
             { label: 'Customers', icon: '👥', active: false, href: '/admin/customers' },
             { label: 'Products', icon: '🌾', active: false, href: '/admin/products' },
             { label: 'Promotions', icon: '🎟️', active: true, href: '/admin/promotions' },
