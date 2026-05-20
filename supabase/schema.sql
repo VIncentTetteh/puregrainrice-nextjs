@@ -251,6 +251,95 @@ create trigger promotions_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============================================================
+-- INVOICES TABLES
+-- ============================================================
+create table if not exists public.invoices (
+  id                uuid primary key default gen_random_uuid(),
+  invoice_number    text not null unique,
+  issue_date        date not null default current_date,
+  customer_name     text not null,
+  customer_email    text,
+  customer_phone    text not null,
+  customer_company  text,
+  subtotal          numeric(10,2) not null check (subtotal >= 0),
+  total             numeric(10,2) not null check (total >= 0),
+  public_token      text not null unique,
+  emailed_at        timestamptz,
+  created_by        uuid references auth.users(id) on delete set null,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create table if not exists public.invoice_items (
+  id            uuid primary key default gen_random_uuid(),
+  invoice_id    uuid not null references public.invoices(id) on delete cascade,
+  product_name  text not null,
+  description   text,
+  unit_price    numeric(10,2) not null check (unit_price > 0),
+  quantity      integer not null check (quantity > 0),
+  line_total    numeric(10,2) generated always as (quantity * unit_price) stored,
+  created_at    timestamptz not null default now()
+);
+
+alter table public.invoices enable row level security;
+alter table public.invoice_items enable row level security;
+
+drop policy if exists "Admins can view invoices" on public.invoices;
+drop policy if exists "Admins can insert invoices" on public.invoices;
+drop policy if exists "Admins can update invoices" on public.invoices;
+drop policy if exists "Admins can delete invoices" on public.invoices;
+drop policy if exists "Admins can view invoice items" on public.invoice_items;
+drop policy if exists "Admins can insert invoice items" on public.invoice_items;
+drop policy if exists "Admins can update invoice items" on public.invoice_items;
+drop policy if exists "Admins can delete invoice items" on public.invoice_items;
+
+create policy "Admins can view invoices"
+  on public.invoices for select
+  using (public.is_admin());
+
+create policy "Admins can insert invoices"
+  on public.invoices for insert
+  with check (public.is_admin());
+
+create policy "Admins can update invoices"
+  on public.invoices for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy "Admins can delete invoices"
+  on public.invoices for delete
+  using (public.is_admin());
+
+create policy "Admins can view invoice items"
+  on public.invoice_items for select
+  using (public.is_admin());
+
+create policy "Admins can insert invoice items"
+  on public.invoice_items for insert
+  with check (
+    public.is_admin() and
+    exists (
+      select 1 from public.invoices i
+      where i.id = invoice_items.invoice_id
+    )
+  );
+
+create policy "Admins can update invoice items"
+  on public.invoice_items for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy "Admins can delete invoice items"
+  on public.invoice_items for delete
+  using (public.is_admin());
+
+drop trigger if exists invoices_updated_at on public.invoices;
+
+create trigger invoices_updated_at
+  before update on public.invoices
+  for each row execute function public.set_updated_at();
+
+-- ============================================================
 -- Auto-increment promo used_count on order insert
 -- ============================================================
 create or replace function public.increment_promo_used_count()

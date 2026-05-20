@@ -84,6 +84,7 @@ Create a `.env.local` file in the root directory:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # Paystack
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY_TEST=your_paystack_test_key
@@ -97,6 +98,7 @@ SUPPORT_PHONE=+233542880528
 
 # App Configuration
 COMPANY_NAME=PurePlatter Foods LTD
+COMPANY_ADDRESS=Taifa Suma Ampim 23, Ghana
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NODE_ENV=development
 ```
@@ -109,6 +111,8 @@ Run the Supabase migrations (SQL files in the database folder) to set up:
 - `customers` table
 - `reviews` table
 - `cart_items` table
+- `invoices` table
+- `invoice_items` table
 
 5. **Configure Admin Access**
 
