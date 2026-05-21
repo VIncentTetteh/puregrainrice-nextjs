@@ -4,6 +4,7 @@ import {
   calculateFarmerSeasonAccount,
   calculateSeasonReport,
   calculateWarehouseBalances,
+  hasAvailableStock,
 } from './operations'
 
 describe('operations calculations', () => {
@@ -74,5 +75,63 @@ describe('operations calculations', () => {
     assert.equal(report.expensesTotal, 250)
     assert.equal(report.revenueTotal, 1600)
     assert.equal(report.profit, -400)
+  })
+
+  it('ignores voided loans and repayments in farmer settlement', () => {
+    const account = calculateFarmerSeasonAccount({
+      loans: [
+        { amount: 1000 },
+        { amount: 500, voided_at: '2026-05-21T10:00:00Z' },
+      ],
+      repayments: [
+        { bags: 8, price_per_bag: 100 },
+        { bags: 10, price_per_bag: 100, voided_at: '2026-05-21T10:00:00Z' },
+      ],
+    })
+
+    assert.equal(account.loanTotal, 1000)
+    assert.equal(account.repaymentTotal, 800)
+    assert.equal(account.balance, 200)
+    assert.equal(account.status, 'outstanding')
+  })
+
+  it('uses reversal stock movements to restore balances after voids', () => {
+    const balances = calculateWarehouseBalances([
+      { warehouse_id: 'w1', season_id: 's1', stock_type: 'milled', movement_type: 'milled_in', bags: 20 },
+      { warehouse_id: 'w1', season_id: 's1', stock_type: 'milled', movement_type: 'dispatched', bags: 8 },
+      { warehouse_id: 'w1', season_id: 's1', stock_type: 'milled', movement_type: 'adjustment', bags: 8, source_type: 'reversal' },
+    ])
+
+    assert.equal(balances[0].milledBags, 20)
+  })
+
+  it('checks warehouse stock availability for milling and dispatch', () => {
+    const balances = calculateWarehouseBalances([
+      { warehouse_id: 'w1', season_id: 's1', stock_type: 'paddy', movement_type: 'received', bags: 30 },
+      { warehouse_id: 'w1', season_id: 's1', stock_type: 'milled', movement_type: 'milled_in', bags: 12 },
+    ])
+
+    assert.equal(hasAvailableStock(balances, 'w1', 's1', 'paddy', 25), true)
+    assert.equal(hasAvailableStock(balances, 'w1', 's1', 'paddy', 31), false)
+    assert.equal(hasAvailableStock(balances, 'w1', 's1', 'milled', 13), false)
+  })
+
+  it('separates linked revenue and manual dispatch revenue in season profit', () => {
+    const report = calculateSeasonReport({
+      loans: [{ amount: 1000 }],
+      repayments: [],
+      expenses: [{ amount: 150 }],
+      millingBatches: [],
+      dispatches: [
+        { bags: 5, sale_amount: 900, order_total: 1000, invoice_total: null },
+        { bags: 3, sale_amount: 450, order_total: null, invoice_total: null },
+      ],
+      stockMovements: [],
+    })
+
+    assert.equal(report.linkedRevenueTotal, 1000)
+    assert.equal(report.manualRevenueTotal, 450)
+    assert.equal(report.revenueTotal, 1450)
+    assert.equal(report.profit, 300)
   })
 })
