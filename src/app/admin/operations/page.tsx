@@ -14,8 +14,8 @@ type ExpenseCategory = 'milling' | 'labour' | 'transportation' | 'other'
 interface Farmer { id: string; full_name: string; phone: string | null; location: string | null; notes: string | null }
 interface Season { id: string; name: string; start_date: string | null; end_date: string | null; status: Status }
 interface Warehouse { id: string; name: string; location: string | null }
-interface Loan { id: string; account_id: string; loan_date: string; amount: number; notes: string | null }
-interface Repayment { id: string; account_id: string; warehouse_id: string; repayment_date: string; bags: number; price_per_bag: number; total_amount: number }
+interface Loan { id: string; account_id: string; loan_date: string; amount: number; notes: string | null; reference_number?: string | null; document_url?: string | null; voided_at?: string | null }
+interface Repayment { id: string; account_id: string; warehouse_id: string; repayment_date: string; bags: number; price_per_bag: number; total_amount: number; reference_number?: string | null; document_url?: string | null; voided_at?: string | null }
 interface AccountSummary { loanTotal: number; repaymentTotal: number; balance: number; status: 'settled' | 'outstanding' }
 interface Account {
   id: string
@@ -45,6 +45,8 @@ interface SeasonReport {
     milledBagsProduced: number
     milledBagsDispatched: number
     expensesTotal: number
+    linkedRevenueTotal: number
+    manualRevenueTotal: number
     revenueTotal: number
     profit: number
     warehouseBalances: WarehouseBalance[]
@@ -55,6 +57,14 @@ interface OperationsData {
   seasons: Season[]
   warehouses: Warehouse[]
   accounts: Account[]
+  loans: Loan[]
+  repayments: Repayment[]
+  millingBatches: Array<Record<string, unknown>>
+  expenses: Array<Record<string, unknown>>
+  dispatches: Array<Record<string, unknown>>
+  stockMovements: Array<Record<string, unknown>>
+  documents: Array<Record<string, unknown>>
+  auditEvents: Array<Record<string, unknown>>
   warehouseBalances: WarehouseBalance[]
   seasonReports: SeasonReport[]
 }
@@ -65,6 +75,14 @@ const blankData: OperationsData = {
   seasons: [],
   warehouses: [],
   accounts: [],
+  loans: [],
+  repayments: [],
+  millingBatches: [],
+  expenses: [],
+  dispatches: [],
+  stockMovements: [],
+  documents: [],
+  auditEvents: [],
   warehouseBalances: [],
   seasonReports: [],
 }
@@ -91,11 +109,11 @@ export default function AdminOperationsPage() {
   const [seasonForm, setSeasonForm] = useState({ name: '', start_date: '', end_date: '', status: 'active' as Status, notes: '' })
   const [warehouseForm, setWarehouseForm] = useState({ name: '', location: '', notes: '' })
   const [accountForm, setAccountForm] = useState({ farmer_id: '', season_id: '' })
-  const [loanForm, setLoanForm] = useState({ account_id: '', loan_date: today(), amount: '', notes: '' })
-  const [repaymentForm, setRepaymentForm] = useState({ account_id: '', warehouse_id: '', repayment_date: today(), bags: '', price_per_bag: '', notes: '' })
-  const [millingForm, setMillingForm] = useState({ season_id: '', source_warehouse_id: '', destination_warehouse_id: '', milling_date: today(), paddy_bags: '', milled_bags: '', notes: '' })
-  const [expenseForm, setExpenseForm] = useState({ season_id: '', expense_date: today(), category: 'milling' as ExpenseCategory, description: '', amount: '' })
-  const [dispatchForm, setDispatchForm] = useState({ season_id: '', warehouse_id: '', dispatch_date: today(), bags: '', sale_amount: '', recipient: '', notes: '' })
+  const [loanForm, setLoanForm] = useState({ account_id: '', loan_date: today(), amount: '', notes: '', reference_number: '', document_url: '' })
+  const [repaymentForm, setRepaymentForm] = useState({ account_id: '', warehouse_id: '', repayment_date: today(), bags: '', price_per_bag: '', notes: '', reference_number: '', document_url: '' })
+  const [millingForm, setMillingForm] = useState({ season_id: '', source_warehouse_id: '', destination_warehouse_id: '', milling_date: today(), paddy_bags: '', milled_bags: '', notes: '', reference_number: '', document_url: '' })
+  const [expenseForm, setExpenseForm] = useState({ season_id: '', expense_date: today(), category: 'milling' as ExpenseCategory, description: '', amount: '', reference_number: '', document_url: '' })
+  const [dispatchForm, setDispatchForm] = useState({ season_id: '', warehouse_id: '', dispatch_date: today(), bags: '', sale_amount: '', recipient: '', notes: '', reference_number: '', document_url: '' })
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdminUser(user.email))) {
@@ -132,10 +150,24 @@ export default function AdminOperationsPage() {
       received: summary?.paddyBagsReceived || 0,
       milled: summary?.milledBagsProduced || 0,
       expenses: summary?.expensesTotal || 0,
+      linkedRevenue: summary?.linkedRevenueTotal || 0,
+      manualRevenue: summary?.manualRevenueTotal || 0,
       revenue: summary?.revenueTotal || 0,
       profit: summary?.profit || 0,
     }
   }, [activeSeasonReport])
+
+  const stockAvailable = (warehouseId: string, seasonId: string, stockType: 'paddy' | 'milled') => {
+    const balance = data.warehouseBalances.find(item => item.warehouse_id === warehouseId && item.season_id === seasonId)
+    return stockType === 'paddy' ? balance?.paddyBags || 0 : balance?.milledBags || 0
+  }
+
+  const millingSeasonId = millingForm.season_id || activeSeasonId
+  const dispatchSeasonId = dispatchForm.season_id || activeSeasonId
+  const paddyAvailable = stockAvailable(millingForm.source_warehouse_id, millingSeasonId, 'paddy')
+  const milledAvailable = stockAvailable(dispatchForm.warehouse_id, dispatchSeasonId, 'milled')
+  const overMilling = Number(millingForm.paddy_bags || 0) > paddyAvailable
+  const overDispatch = Number(dispatchForm.bags || 0) > milledAvailable
 
   const fetchOperations = async () => {
     setLoading(true)
@@ -247,6 +279,7 @@ export default function AdminOperationsPage() {
             <p className="text-xs text-[var(--charcoal-muted)] mt-0.5">Track farmer sponsorship, warehouses, milling, dispatches, expenses, and season profit</p>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/admin/operations/audit" className="btn-ghost !text-sm !py-2 !px-3 border border-[var(--cream-dark)]">Audit Log</Link>
             <Link href="/admin" className="lg:hidden btn-ghost !text-xs !py-2 !px-3">Orders</Link>
             <button onClick={fetchOperations} className="btn-ghost !text-sm !py-2 !px-3 border border-[var(--cream-dark)]">Refresh</button>
           </div>
@@ -266,12 +299,14 @@ export default function AdminOperationsPage() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
             {[
               { label: 'Invested', value: fmtMoney(totals.invested), color: 'text-[var(--charcoal)]' },
               { label: 'Paddy Received', value: fmtBags(totals.received), color: 'text-[var(--gold-dark)]' },
               { label: 'Milled Rice', value: fmtBags(totals.milled), color: 'text-green-700' },
               { label: 'Expenses', value: fmtMoney(totals.expenses), color: 'text-red-600' },
+              { label: 'Linked Sales', value: fmtMoney(totals.linkedRevenue), color: 'text-blue-700' },
+              { label: 'Manual Sales', value: fmtMoney(totals.manualRevenue), color: 'text-sky-700' },
               { label: 'Revenue', value: fmtMoney(totals.revenue), color: 'text-blue-700' },
               { label: 'Profit', value: fmtMoney(totals.profit), color: totals.profit >= 0 ? 'text-green-700' : 'text-red-600' },
             ].map(card => (
@@ -348,7 +383,11 @@ export default function AdminOperationsPage() {
                   <input type="date" className={inputClass} value={loanForm.loan_date} onChange={e => setLoanForm(f => ({ ...f, loan_date: e.target.value }))} />
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Amount" value={loanForm.amount} onChange={e => setLoanForm(f => ({ ...f, amount: e.target.value }))} />
                 </div>
-                <button disabled={saving === 'loan'} className={buttonClass} onClick={() => createResource('loan', loanForm, () => setLoanForm({ account_id: '', loan_date: today(), amount: '', notes: '' }))}>Record Loan</button>
+                <div className="grid grid-cols-2 gap-2">
+                  <input className={inputClass} placeholder="Reference number" value={loanForm.reference_number} onChange={e => setLoanForm(f => ({ ...f, reference_number: e.target.value }))} />
+                  <input className={inputClass} placeholder="Proof document URL" value={loanForm.document_url} onChange={e => setLoanForm(f => ({ ...f, document_url: e.target.value }))} />
+                </div>
+                <button disabled={saving === 'loan'} className={buttonClass} onClick={() => createResource('loan', loanForm, () => setLoanForm({ account_id: '', loan_date: today(), amount: '', notes: '', reference_number: '', document_url: '' }))}>Record Loan</button>
               </div>
 
               <div className="border-t border-[var(--cream-dark)] pt-4 space-y-3">
@@ -366,7 +405,11 @@ export default function AdminOperationsPage() {
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Bags" value={repaymentForm.bags} onChange={e => setRepaymentForm(f => ({ ...f, bags: e.target.value }))} />
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Price/bag" value={repaymentForm.price_per_bag} onChange={e => setRepaymentForm(f => ({ ...f, price_per_bag: e.target.value }))} />
                 </div>
-                <button disabled={saving === 'repayment'} className={buttonClass} onClick={() => createResource('repayment', repaymentForm, () => setRepaymentForm({ account_id: '', warehouse_id: '', repayment_date: today(), bags: '', price_per_bag: '', notes: '' }))}>Record Rice Repayment</button>
+                <div className="grid grid-cols-2 gap-2">
+                  <input className={inputClass} placeholder="Reference number" value={repaymentForm.reference_number} onChange={e => setRepaymentForm(f => ({ ...f, reference_number: e.target.value }))} />
+                  <input className={inputClass} placeholder="Proof document URL" value={repaymentForm.document_url} onChange={e => setRepaymentForm(f => ({ ...f, document_url: e.target.value }))} />
+                </div>
+                <button disabled={saving === 'repayment'} className={buttonClass} onClick={() => createResource('repayment', repaymentForm, () => setRepaymentForm({ account_id: '', warehouse_id: '', repayment_date: today(), bags: '', price_per_bag: '', notes: '', reference_number: '', document_url: '' }))}>Record Rice Repayment</button>
               </div>
             </section>
 
@@ -391,7 +434,16 @@ export default function AdminOperationsPage() {
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Paddy bags" value={millingForm.paddy_bags} onChange={e => setMillingForm(f => ({ ...f, paddy_bags: e.target.value }))} />
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Milled bags" value={millingForm.milled_bags} onChange={e => setMillingForm(f => ({ ...f, milled_bags: e.target.value }))} />
                 </div>
-                <button disabled={saving === 'milling'} className={buttonClass} onClick={() => createResource('milling', { ...millingForm, season_id: millingForm.season_id || activeSeasonId }, () => setMillingForm({ season_id: '', source_warehouse_id: '', destination_warehouse_id: '', milling_date: today(), paddy_bags: '', milled_bags: '', notes: '' }))}>Record Milling</button>
+                {millingForm.source_warehouse_id && (
+                  <p className={`text-xs font-semibold ${overMilling ? 'text-red-600' : 'text-[var(--charcoal-muted)]'}`}>
+                    Available paddy: {fmtBags(paddyAvailable)}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <input className={inputClass} placeholder="Reference number" value={millingForm.reference_number} onChange={e => setMillingForm(f => ({ ...f, reference_number: e.target.value }))} />
+                  <input className={inputClass} placeholder="Proof document URL" value={millingForm.document_url} onChange={e => setMillingForm(f => ({ ...f, document_url: e.target.value }))} />
+                </div>
+                <button disabled={saving === 'milling' || overMilling} className={buttonClass} onClick={() => createResource('milling', { ...millingForm, season_id: millingForm.season_id || activeSeasonId }, () => setMillingForm({ season_id: '', source_warehouse_id: '', destination_warehouse_id: '', milling_date: today(), paddy_bags: '', milled_bags: '', notes: '', reference_number: '', document_url: '' }))}>Record Milling</button>
               </div>
 
               <div className="border-t border-[var(--cream-dark)] pt-4 space-y-3">
@@ -410,7 +462,11 @@ export default function AdminOperationsPage() {
                   <input className={inputClass} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} />
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Amount" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} />
                 </div>
-                <button disabled={saving === 'expense'} className={buttonClass} onClick={() => createResource('expense', { ...expenseForm, season_id: expenseForm.season_id || activeSeasonId }, () => setExpenseForm({ season_id: '', expense_date: today(), category: 'milling', description: '', amount: '' }))}>Record Expense</button>
+                <div className="grid grid-cols-2 gap-2">
+                  <input className={inputClass} placeholder="Reference number" value={expenseForm.reference_number} onChange={e => setExpenseForm(f => ({ ...f, reference_number: e.target.value }))} />
+                  <input className={inputClass} placeholder="Proof document URL" value={expenseForm.document_url} onChange={e => setExpenseForm(f => ({ ...f, document_url: e.target.value }))} />
+                </div>
+                <button disabled={saving === 'expense'} className={buttonClass} onClick={() => createResource('expense', { ...expenseForm, season_id: expenseForm.season_id || activeSeasonId }, () => setExpenseForm({ season_id: '', expense_date: today(), category: 'milling', description: '', amount: '', reference_number: '', document_url: '' }))}>Record Expense</button>
               </div>
 
               <div className="border-t border-[var(--cream-dark)] pt-4 space-y-3">
@@ -428,7 +484,16 @@ export default function AdminOperationsPage() {
                   <input type="number" min="0" step="0.01" className={inputClass} placeholder="Sale amount optional" value={dispatchForm.sale_amount} onChange={e => setDispatchForm(f => ({ ...f, sale_amount: e.target.value }))} />
                   <input className={`${inputClass} col-span-2`} placeholder="Recipient / customer optional" value={dispatchForm.recipient} onChange={e => setDispatchForm(f => ({ ...f, recipient: e.target.value }))} />
                 </div>
-                <button disabled={saving === 'dispatch'} className={buttonClass} onClick={() => createResource('dispatch', { ...dispatchForm, season_id: dispatchForm.season_id || activeSeasonId }, () => setDispatchForm({ season_id: '', warehouse_id: '', dispatch_date: today(), bags: '', sale_amount: '', recipient: '', notes: '' }))}>Record Dispatch</button>
+                {dispatchForm.warehouse_id && (
+                  <p className={`text-xs font-semibold ${overDispatch ? 'text-red-600' : 'text-[var(--charcoal-muted)]'}`}>
+                    Available milled rice: {fmtBags(milledAvailable)}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <input className={inputClass} placeholder="Reference number" value={dispatchForm.reference_number} onChange={e => setDispatchForm(f => ({ ...f, reference_number: e.target.value }))} />
+                  <input className={inputClass} placeholder="Proof document URL" value={dispatchForm.document_url} onChange={e => setDispatchForm(f => ({ ...f, document_url: e.target.value }))} />
+                </div>
+                <button disabled={saving === 'dispatch' || overDispatch} className={buttonClass} onClick={() => createResource('dispatch', { ...dispatchForm, season_id: dispatchForm.season_id || activeSeasonId }, () => setDispatchForm({ season_id: '', warehouse_id: '', dispatch_date: today(), bags: '', sale_amount: '', recipient: '', notes: '', reference_number: '', document_url: '' }))}>Record Dispatch</button>
               </div>
             </section>
           </div>
@@ -442,14 +507,18 @@ export default function AdminOperationsPage() {
                 <table className="w-full min-w-[720px]">
                   <thead>
                     <tr className="bg-[var(--off-white)] border-b border-[var(--cream-dark)]">
-                      {['Farmer', 'Season', 'Loan', 'Rice Value', 'Balance', 'Status'].map(header => <th key={header} className="px-5 py-3 text-left text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider">{header}</th>)}
+                      {['Farmer', 'Season', 'Loan', 'Rice Value', 'Balance', 'Status', 'Proof'].map(header => <th key={header} className="px-5 py-3 text-left text-xs font-semibold text-[var(--charcoal-muted)] uppercase tracking-wider">{header}</th>)}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--cream-dark)]">
                     {activeAccounts.map(account => (
                       <tr key={account.id}>
-                        <td className="px-5 py-3 text-sm font-semibold text-[var(--charcoal)]">{account.farmer?.full_name || farmerName(account.farmer_id)}</td>
-                        <td className="px-5 py-3 text-sm text-[var(--charcoal-muted)]">{account.season?.name || seasonName(account.season_id)}</td>
+                        <td className="px-5 py-3 text-sm font-semibold text-[var(--charcoal)]">
+                          <Link className="hover:text-[var(--gold-dark)]" href={`/admin/operations/farmers/${account.farmer_id}`}>{account.farmer?.full_name || farmerName(account.farmer_id)}</Link>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-[var(--charcoal-muted)]">
+                          <Link className="hover:text-[var(--gold-dark)]" href={`/admin/operations/seasons/${account.season_id}`}>{account.season?.name || seasonName(account.season_id)}</Link>
+                        </td>
                         <td className="px-5 py-3 text-sm text-[var(--charcoal)]">{fmtMoney(account.summary.loanTotal)}</td>
                         <td className="px-5 py-3 text-sm text-[var(--charcoal)]">{fmtMoney(account.summary.repaymentTotal)}</td>
                         <td className={`px-5 py-3 text-sm font-bold ${account.summary.balance <= 0 ? 'text-green-700' : 'text-red-600'}`}>{fmtMoney(account.summary.balance)}</td>
@@ -458,10 +527,17 @@ export default function AdminOperationsPage() {
                             {account.summary.status === 'settled' ? 'Settled' : 'Outstanding'}
                           </span>
                         </td>
+                        <td className="px-5 py-3">
+                          {account.loans.some(loan => !loan.document_url) || account.repayments.some(repayment => !repayment.document_url) ? (
+                            <span className="inline-flex px-2.5 py-1 rounded-full border text-xs font-semibold bg-amber-50 text-amber-700 border-amber-200">Missing proof</span>
+                          ) : (
+                            <span className="inline-flex px-2.5 py-1 rounded-full border text-xs font-semibold bg-green-50 text-green-700 border-green-200">Proof attached</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {activeAccounts.length === 0 && (
-                      <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-[var(--charcoal-muted)]">No farmer season accounts yet.</td></tr>
+                      <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-[var(--charcoal-muted)]">No farmer season accounts yet.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -482,8 +558,12 @@ export default function AdminOperationsPage() {
                   <tbody className="divide-y divide-[var(--cream-dark)]">
                     {activeWarehouseBalances.map(balance => (
                       <tr key={`${balance.warehouse_id}-${balance.season_id}`}>
-                        <td className="px-5 py-3 text-sm font-semibold text-[var(--charcoal)]">{warehouseName(balance.warehouse_id)}</td>
-                        <td className="px-5 py-3 text-sm text-[var(--charcoal-muted)]">{seasonName(balance.season_id)}</td>
+                        <td className="px-5 py-3 text-sm font-semibold text-[var(--charcoal)]">
+                          <Link className="hover:text-[var(--gold-dark)]" href={`/admin/operations/warehouses/${balance.warehouse_id}`}>{warehouseName(balance.warehouse_id)}</Link>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-[var(--charcoal-muted)]">
+                          <Link className="hover:text-[var(--gold-dark)]" href={`/admin/operations/seasons/${balance.season_id}`}>{seasonName(balance.season_id)}</Link>
+                        </td>
                         <td className="px-5 py-3 text-sm text-[var(--charcoal)]">{fmtBags(balance.paddyBags)}</td>
                         <td className="px-5 py-3 text-sm text-[var(--charcoal)]">{fmtBags(balance.milledBags)}</td>
                         <td className="px-5 py-3 text-sm font-bold text-[var(--charcoal)]">{fmtBags(balance.totalBags)}</td>

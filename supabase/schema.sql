@@ -462,6 +462,103 @@ create table if not exists public.rice_dispatches (
   updated_at    timestamptz not null default now()
 );
 
+-- Audit/proof metadata for farmer operations. Safe no-ops for existing installs.
+alter table public.farmers add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.farmers add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.farming_seasons add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.farming_seasons add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_season_accounts add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_season_accounts add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.warehouses add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.warehouses add column if not exists updated_by uuid references auth.users(id) on delete set null;
+
+alter table public.farmer_loans add column if not exists reference_number text;
+alter table public.farmer_loans add column if not exists document_url text;
+alter table public.farmer_loans add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_loans add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_loans add column if not exists voided_at timestamptz;
+alter table public.farmer_loans add column if not exists voided_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_loans add column if not exists void_reason text;
+
+alter table public.farmer_repayments add column if not exists reference_number text;
+alter table public.farmer_repayments add column if not exists document_url text;
+alter table public.farmer_repayments add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_repayments add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_repayments add column if not exists voided_at timestamptz;
+alter table public.farmer_repayments add column if not exists voided_by uuid references auth.users(id) on delete set null;
+alter table public.farmer_repayments add column if not exists void_reason text;
+
+alter table public.warehouse_stock_movements add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.warehouse_stock_movements add column if not exists voided_at timestamptz;
+alter table public.warehouse_stock_movements add column if not exists voided_by uuid references auth.users(id) on delete set null;
+alter table public.warehouse_stock_movements add column if not exists void_reason text;
+
+alter table public.milling_batches add column if not exists reference_number text;
+alter table public.milling_batches add column if not exists document_url text;
+alter table public.milling_batches add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.milling_batches add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.milling_batches add column if not exists voided_at timestamptz;
+alter table public.milling_batches add column if not exists voided_by uuid references auth.users(id) on delete set null;
+alter table public.milling_batches add column if not exists void_reason text;
+
+alter table public.season_expenses add column if not exists reference_number text;
+alter table public.season_expenses add column if not exists document_url text;
+alter table public.season_expenses add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.season_expenses add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.season_expenses add column if not exists voided_at timestamptz;
+alter table public.season_expenses add column if not exists voided_by uuid references auth.users(id) on delete set null;
+alter table public.season_expenses add column if not exists void_reason text;
+
+alter table public.rice_dispatches add column if not exists reference_number text;
+alter table public.rice_dispatches add column if not exists document_url text;
+alter table public.rice_dispatches add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.rice_dispatches add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.rice_dispatches add column if not exists voided_at timestamptz;
+alter table public.rice_dispatches add column if not exists voided_by uuid references auth.users(id) on delete set null;
+alter table public.rice_dispatches add column if not exists void_reason text;
+
+alter table public.warehouse_stock_movements
+  drop constraint if exists warehouse_stock_movements_source_type_check;
+
+alter table public.warehouse_stock_movements
+  add constraint warehouse_stock_movements_source_type_check
+  check (source_type in ('farmer_repayment','milling_batch','dispatch','manual','reversal'));
+
+create table if not exists public.operation_documents (
+  id             uuid primary key default gen_random_uuid(),
+  resource_type  text not null,
+  resource_id    uuid,
+  farmer_id      uuid references public.farmers(id) on delete cascade,
+  season_id      uuid references public.farming_seasons(id) on delete cascade,
+  document_type  text not null default 'other'
+                   check (document_type in ('agreement','receipt','waybill','milling_receipt','expense_receipt','photo','other')),
+  title          text not null,
+  file_url       text not null,
+  storage_path   text,
+  uploaded_by    uuid references auth.users(id) on delete set null,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  updated_by     uuid references auth.users(id) on delete set null
+);
+
+alter table public.operation_documents add column if not exists updated_at timestamptz not null default now();
+alter table public.operation_documents add column if not exists updated_by uuid references auth.users(id) on delete set null;
+
+create table if not exists public.operation_audit_events (
+  id             uuid primary key default gen_random_uuid(),
+  actor_id       uuid references auth.users(id) on delete set null,
+  action         text not null,
+  resource_type  text not null,
+  resource_id    uuid,
+  farmer_id      uuid references public.farmers(id) on delete set null,
+  season_id      uuid references public.farming_seasons(id) on delete set null,
+  warehouse_id   uuid references public.warehouses(id) on delete set null,
+  before_data    jsonb,
+  after_data     jsonb,
+  reason         text,
+  created_at     timestamptz not null default now()
+);
+
 alter table public.farmers enable row level security;
 alter table public.farming_seasons enable row level security;
 alter table public.farmer_season_accounts enable row level security;
@@ -472,6 +569,8 @@ alter table public.warehouse_stock_movements enable row level security;
 alter table public.milling_batches enable row level security;
 alter table public.season_expenses enable row level security;
 alter table public.rice_dispatches enable row level security;
+alter table public.operation_documents enable row level security;
+alter table public.operation_audit_events enable row level security;
 
 drop trigger if exists farmers_updated_at on public.farmers;
 drop trigger if exists farming_seasons_updated_at on public.farming_seasons;
@@ -482,6 +581,7 @@ drop trigger if exists farmer_repayments_updated_at on public.farmer_repayments;
 drop trigger if exists milling_batches_updated_at on public.milling_batches;
 drop trigger if exists season_expenses_updated_at on public.season_expenses;
 drop trigger if exists rice_dispatches_updated_at on public.rice_dispatches;
+drop trigger if exists operation_documents_updated_at on public.operation_documents;
 
 create trigger farmers_updated_at before update on public.farmers for each row execute function public.set_updated_at();
 create trigger farming_seasons_updated_at before update on public.farming_seasons for each row execute function public.set_updated_at();
@@ -492,6 +592,7 @@ create trigger farmer_repayments_updated_at before update on public.farmer_repay
 create trigger milling_batches_updated_at before update on public.milling_batches for each row execute function public.set_updated_at();
 create trigger season_expenses_updated_at before update on public.season_expenses for each row execute function public.set_updated_at();
 create trigger rice_dispatches_updated_at before update on public.rice_dispatches for each row execute function public.set_updated_at();
+create trigger operation_documents_updated_at before update on public.operation_documents for each row execute function public.set_updated_at();
 
 do $$
 declare
@@ -507,7 +608,9 @@ begin
     'warehouse_stock_movements',
     'milling_batches',
     'season_expenses',
-    'rice_dispatches'
+    'rice_dispatches',
+    'operation_documents',
+    'operation_audit_events'
   ]
   loop
     execute format('drop policy if exists "Admins can view %1$s" on public.%1$I', table_name);
@@ -520,6 +623,438 @@ begin
     execute format('create policy "Admins can delete %1$s" on public.%1$I for delete using (public.is_admin())', table_name);
   end loop;
 end $$;
+
+create or replace function public.operation_stock_balance(
+  p_warehouse_id uuid,
+  p_season_id uuid,
+  p_stock_type text
+)
+returns numeric
+language sql
+stable
+as $$
+  select coalesce(sum(
+    case
+      when movement_type in ('milled_out','dispatched') then -abs(bags)
+      when movement_type = 'adjustment' then bags
+      else abs(bags)
+    end
+  ), 0)
+  from public.warehouse_stock_movements
+  where warehouse_id = p_warehouse_id
+    and season_id = p_season_id
+    and stock_type = p_stock_type
+    and voided_at is null
+$$;
+
+create or replace function public.create_operation_audit_event(
+  p_action text,
+  p_resource_type text,
+  p_resource_id uuid,
+  p_before jsonb default null,
+  p_after jsonb default null,
+  p_reason text default null,
+  p_farmer_id uuid default null,
+  p_season_id uuid default null,
+  p_warehouse_id uuid default null
+)
+returns uuid
+language plpgsql
+security definer
+as $$
+declare
+  event_id uuid;
+begin
+  insert into public.operation_audit_events (
+    actor_id,
+    action,
+    resource_type,
+    resource_id,
+    before_data,
+    after_data,
+    reason,
+    farmer_id,
+    season_id,
+    warehouse_id
+  )
+  values (
+    auth.uid(),
+    p_action,
+    p_resource_type,
+    p_resource_id,
+    p_before,
+    p_after,
+    p_reason,
+    p_farmer_id,
+    p_season_id,
+    p_warehouse_id
+  )
+  returning id into event_id;
+
+  return event_id;
+end;
+$$;
+
+create or replace function public.create_farmer_repayment_with_stock(
+  p_account_id uuid,
+  p_warehouse_id uuid,
+  p_repayment_date date,
+  p_bags numeric,
+  p_price_per_bag numeric,
+  p_notes text default null,
+  p_reference_number text default null,
+  p_document_url text default null
+)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  account_row public.farmer_season_accounts%rowtype;
+  repayment_row public.farmer_repayments%rowtype;
+begin
+  if not public.is_admin() then
+    raise exception 'Access denied';
+  end if;
+  if p_bags <= 0 or p_price_per_bag <= 0 then
+    raise exception 'Bags and price per bag must be greater than 0';
+  end if;
+
+  select * into account_row
+  from public.farmer_season_accounts
+  where id = p_account_id;
+
+  if not found then
+    raise exception 'Farmer season account not found';
+  end if;
+
+  insert into public.farmer_repayments (
+    account_id,
+    warehouse_id,
+    repayment_date,
+    bags,
+    price_per_bag,
+    notes,
+    reference_number,
+    document_url,
+    created_by
+  )
+  values (
+    p_account_id,
+    p_warehouse_id,
+    coalesce(p_repayment_date, current_date),
+    p_bags,
+    p_price_per_bag,
+    p_notes,
+    p_reference_number,
+    p_document_url,
+    auth.uid()
+  )
+  returning * into repayment_row;
+
+  insert into public.warehouse_stock_movements (
+    warehouse_id,
+    season_id,
+    farmer_id,
+    source_type,
+    source_id,
+    stock_type,
+    movement_type,
+    bags,
+    movement_date,
+    notes,
+    created_by
+  )
+  values (
+    p_warehouse_id,
+    account_row.season_id,
+    account_row.farmer_id,
+    'farmer_repayment',
+    repayment_row.id,
+    'paddy',
+    'received',
+    p_bags,
+    repayment_row.repayment_date,
+    'Rice repayment received',
+    auth.uid()
+  );
+
+  perform public.create_operation_audit_event(
+    'create',
+    'farmer_repayment',
+    repayment_row.id,
+    null,
+    to_jsonb(repayment_row),
+    null,
+    account_row.farmer_id,
+    account_row.season_id,
+    p_warehouse_id
+  );
+
+  return repayment_row.id;
+end;
+$$;
+
+create or replace function public.create_milling_batch_with_stock(
+  p_season_id uuid,
+  p_source_warehouse_id uuid,
+  p_destination_warehouse_id uuid,
+  p_milling_date date,
+  p_paddy_bags numeric,
+  p_milled_bags numeric,
+  p_notes text default null,
+  p_reference_number text default null,
+  p_document_url text default null
+)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  batch_row public.milling_batches%rowtype;
+  available_paddy numeric;
+begin
+  if not public.is_admin() then
+    raise exception 'Access denied';
+  end if;
+  if p_paddy_bags <= 0 or p_milled_bags < 0 then
+    raise exception 'Invalid milling bag quantities';
+  end if;
+
+  available_paddy := public.operation_stock_balance(p_source_warehouse_id, p_season_id, 'paddy');
+  if available_paddy < p_paddy_bags then
+    raise exception 'Not enough paddy stock. Available: %, requested: %', available_paddy, p_paddy_bags;
+  end if;
+
+  insert into public.milling_batches (
+    season_id,
+    source_warehouse_id,
+    destination_warehouse_id,
+    milling_date,
+    paddy_bags,
+    milled_bags,
+    notes,
+    reference_number,
+    document_url,
+    created_by
+  )
+  values (
+    p_season_id,
+    p_source_warehouse_id,
+    p_destination_warehouse_id,
+    coalesce(p_milling_date, current_date),
+    p_paddy_bags,
+    p_milled_bags,
+    p_notes,
+    p_reference_number,
+    p_document_url,
+    auth.uid()
+  )
+  returning * into batch_row;
+
+  insert into public.warehouse_stock_movements (
+    warehouse_id,
+    season_id,
+    source_type,
+    source_id,
+    stock_type,
+    movement_type,
+    bags,
+    movement_date,
+    notes,
+    created_by
+  )
+  values
+    (p_source_warehouse_id, p_season_id, 'milling_batch', batch_row.id, 'paddy', 'milled_out', p_paddy_bags, batch_row.milling_date, 'Paddy sent for milling', auth.uid()),
+    (p_destination_warehouse_id, p_season_id, 'milling_batch', batch_row.id, 'milled', 'milled_in', p_milled_bags, batch_row.milling_date, 'Milled rice received', auth.uid());
+
+  perform public.create_operation_audit_event(
+    'create',
+    'milling_batch',
+    batch_row.id,
+    null,
+    to_jsonb(batch_row),
+    null,
+    null,
+    p_season_id,
+    p_source_warehouse_id
+  );
+
+  return batch_row.id;
+end;
+$$;
+
+create or replace function public.create_rice_dispatch_with_stock(
+  p_season_id uuid,
+  p_warehouse_id uuid,
+  p_dispatch_date date,
+  p_bags numeric,
+  p_sale_amount numeric default null,
+  p_order_id uuid default null,
+  p_invoice_id uuid default null,
+  p_recipient text default null,
+  p_notes text default null,
+  p_reference_number text default null,
+  p_document_url text default null
+)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  dispatch_row public.rice_dispatches%rowtype;
+  available_milled numeric;
+begin
+  if not public.is_admin() then
+    raise exception 'Access denied';
+  end if;
+  if p_bags <= 0 then
+    raise exception 'Bags must be greater than 0';
+  end if;
+
+  available_milled := public.operation_stock_balance(p_warehouse_id, p_season_id, 'milled');
+  if available_milled < p_bags then
+    raise exception 'Not enough milled stock. Available: %, requested: %', available_milled, p_bags;
+  end if;
+
+  insert into public.rice_dispatches (
+    season_id,
+    warehouse_id,
+    dispatch_date,
+    bags,
+    sale_amount,
+    order_id,
+    invoice_id,
+    recipient,
+    notes,
+    reference_number,
+    document_url,
+    created_by
+  )
+  values (
+    p_season_id,
+    p_warehouse_id,
+    coalesce(p_dispatch_date, current_date),
+    p_bags,
+    p_sale_amount,
+    p_order_id,
+    p_invoice_id,
+    p_recipient,
+    p_notes,
+    p_reference_number,
+    p_document_url,
+    auth.uid()
+  )
+  returning * into dispatch_row;
+
+  insert into public.warehouse_stock_movements (
+    warehouse_id,
+    season_id,
+    source_type,
+    source_id,
+    stock_type,
+    movement_type,
+    bags,
+    movement_date,
+    notes,
+    created_by
+  )
+  values (
+    p_warehouse_id,
+    p_season_id,
+    'dispatch',
+    dispatch_row.id,
+    'milled',
+    'dispatched',
+    p_bags,
+    dispatch_row.dispatch_date,
+    coalesce('Rice dispatched to ' || nullif(p_recipient, ''), 'Rice dispatched'),
+    auth.uid()
+  );
+
+  perform public.create_operation_audit_event(
+    'create',
+    'rice_dispatch',
+    dispatch_row.id,
+    null,
+    to_jsonb(dispatch_row),
+    null,
+    null,
+    p_season_id,
+    p_warehouse_id
+  );
+
+  return dispatch_row.id;
+end;
+$$;
+
+create or replace function public.void_operation_record(
+  p_resource_type text,
+  p_resource_id uuid,
+  p_reason text
+)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  before_row jsonb;
+  account_row public.farmer_season_accounts%rowtype;
+  repayment_row public.farmer_repayments%rowtype;
+  batch_row public.milling_batches%rowtype;
+  dispatch_row public.rice_dispatches%rowtype;
+begin
+  if not public.is_admin() then
+    raise exception 'Access denied';
+  end if;
+  if coalesce(trim(p_reason), '') = '' then
+    raise exception 'Void reason is required';
+  end if;
+
+  if p_resource_type = 'loan' then
+    select to_jsonb(l) into before_row from public.farmer_loans l where l.id = p_resource_id and l.voided_at is null;
+    if before_row is null then raise exception 'Loan not found or already voided'; end if;
+    update public.farmer_loans set voided_at = now(), voided_by = auth.uid(), void_reason = p_reason where id = p_resource_id;
+    perform public.create_operation_audit_event('void', 'farmer_loan', p_resource_id, before_row, null, p_reason);
+  elsif p_resource_type = 'expense' then
+    select to_jsonb(e) into before_row from public.season_expenses e where e.id = p_resource_id and e.voided_at is null;
+    if before_row is null then raise exception 'Expense not found or already voided'; end if;
+    update public.season_expenses set voided_at = now(), voided_by = auth.uid(), void_reason = p_reason where id = p_resource_id;
+    perform public.create_operation_audit_event('void', 'season_expense', p_resource_id, before_row, null, p_reason);
+  elsif p_resource_type = 'repayment' then
+    select * into repayment_row from public.farmer_repayments where id = p_resource_id and voided_at is null;
+    if not found then raise exception 'Repayment not found or already voided'; end if;
+    select * into account_row from public.farmer_season_accounts where id = repayment_row.account_id;
+    before_row := to_jsonb(repayment_row);
+    update public.farmer_repayments set voided_at = now(), voided_by = auth.uid(), void_reason = p_reason where id = p_resource_id;
+    insert into public.warehouse_stock_movements (warehouse_id, season_id, farmer_id, source_type, source_id, stock_type, movement_type, bags, movement_date, notes, created_by)
+    values (repayment_row.warehouse_id, account_row.season_id, account_row.farmer_id, 'reversal', repayment_row.id, 'paddy', 'adjustment', -abs(repayment_row.bags), current_date, 'Void repayment: ' || p_reason, auth.uid());
+    perform public.create_operation_audit_event('void', 'farmer_repayment', p_resource_id, before_row, null, p_reason, account_row.farmer_id, account_row.season_id, repayment_row.warehouse_id);
+  elsif p_resource_type = 'milling' then
+    select * into batch_row from public.milling_batches where id = p_resource_id and voided_at is null;
+    if not found then raise exception 'Milling batch not found or already voided'; end if;
+    before_row := to_jsonb(batch_row);
+    update public.milling_batches set voided_at = now(), voided_by = auth.uid(), void_reason = p_reason where id = p_resource_id;
+    insert into public.warehouse_stock_movements (warehouse_id, season_id, source_type, source_id, stock_type, movement_type, bags, movement_date, notes, created_by)
+    values
+      (batch_row.source_warehouse_id, batch_row.season_id, 'reversal', batch_row.id, 'paddy', 'adjustment', abs(batch_row.paddy_bags), current_date, 'Void milling paddy return: ' || p_reason, auth.uid()),
+      (batch_row.destination_warehouse_id, batch_row.season_id, 'reversal', batch_row.id, 'milled', 'adjustment', -abs(batch_row.milled_bags), current_date, 'Void milling output removal: ' || p_reason, auth.uid());
+    perform public.create_operation_audit_event('void', 'milling_batch', p_resource_id, before_row, null, p_reason, null, batch_row.season_id, batch_row.source_warehouse_id);
+  elsif p_resource_type = 'dispatch' then
+    select * into dispatch_row from public.rice_dispatches where id = p_resource_id and voided_at is null;
+    if not found then raise exception 'Dispatch not found or already voided'; end if;
+    before_row := to_jsonb(dispatch_row);
+    update public.rice_dispatches set voided_at = now(), voided_by = auth.uid(), void_reason = p_reason where id = p_resource_id;
+    insert into public.warehouse_stock_movements (warehouse_id, season_id, source_type, source_id, stock_type, movement_type, bags, movement_date, notes, created_by)
+    values (dispatch_row.warehouse_id, dispatch_row.season_id, 'reversal', dispatch_row.id, 'milled', 'adjustment', abs(dispatch_row.bags), current_date, 'Void dispatch return: ' || p_reason, auth.uid());
+    perform public.create_operation_audit_event('void', 'rice_dispatch', p_resource_id, before_row, null, p_reason, null, dispatch_row.season_id, dispatch_row.warehouse_id);
+  else
+    raise exception 'Unsupported resource type';
+  end if;
+
+  return p_resource_id;
+end;
+$$;
 
 -- ============================================================
 -- Auto-increment promo used_count on order insert
